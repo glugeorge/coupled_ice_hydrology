@@ -76,7 +76,7 @@ p = rho_i*g*h_interp*params.h0;
 params.psi = (rho_w*g*sin(phi_b)-gradient(p)./gradient(params.sigma.*params.x0))./params.psi0;
 
 params.M = 5*10^-4/params.M0; 
-params.N_terminus = rho_i*g*h_interp(end)*params.h0/params.N0;
+params.N_terminus = 0;%rho_i*g*h_interp(end)*params.h0/params.N0;
 params.r = rho_i/rho_w;
 
 QNS = [Q; N; S];

@@ -71,6 +71,7 @@ params.dx = diff(params.x_array); %grid spacing
 
 
 %% Determine at what points there is coupling
+% set off for initial condition
 % 1 - coupling on, 0 - coupling off
 params.hydro_u_from_ice_u = 0;
 params.hydro_psi_from_ice_h = 0;
@@ -115,11 +116,49 @@ Ss = nan.*ones(params.Nt,params.Nx);
 hs = nan.*ones(params.Nt,params.Nx);
 us = nan.*ones(params.Nt,params.Nx);
 xgs = nan.*ones(1,params.Nt);
-QNShuxg = QNShuxg_init;
+QNShuxg_t = QNShuxg_init;
 
-params.h_old = huxg_t(1:params.Nx);
-params.xg_old = huxg_t(end);
+params.h_old = h;
+params.xg_old =xg;
+params.S_old = S;
+params.transient = 1;
+params.accum = 0.8/params.year;
+params.hydro_u_from_ice_u = 0;
+params.hydro_psi_from_ice_h = 0;
+params.ice_N_from_hydro = 0;
 
+for t=1:params.Nt
+    flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
+    [QNShuxg_t,F,exitflag,output,JAC] = fsolve(flf,QNShuxg_t,options);
+    
+    params.h_old = QNShuxg_t(3*params.Nx+1:4*params.Nx);
+    params.xg_old = QNShuxg_t(5*params.Nx+1);
+    params.S_old = QNShuxg_t(2*params.Nx+1:3*params.Nx);
+    t
+    xgs(t) = QNShuxg_t(5*params.Nx+1);
+    hs(t,:) = QNShuxg_t(3*params.Nx+1:4*params.Nx)';
+    us(t,:) = QNShuxg_t(4*params.Nx+1:5*params.Nx)';
+    Qs(t,:) = QNShuxg_t(1:params.Nx);
+    Ns(t,:) = QNShuxg_t(params.Nx+1:2*params.Nx);
+    Ss(t,:) = QNShuxg_t(2*params.Nx+1:3*params.Nx);
+end
+
+%% Plotting
+ts = linspace(0,params.Nt*params.dt*params.th0./params.year,params.Nt);
+figure();
+subplot(3,1,1);plot(ts,xgs.*params.x0./1e3,'linewidth',3);xlabel('time (yr)');ylabel('x_g');
+subplot(3,1,2);surface(ts,params.sigma_elem,hs'.*params.h0,EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('sigma');title('thickness (m)');set(gca,'Ydir','Reverse');
+subplot(3,1,3);contourf(ts,params.sigma,us'.*params.u0.*params.year);colorbar;xlabel('time (yr)');ylabel('sigma');title('velocity (m/yr)');set(gca,'Ydir','Reverse');
+
+figure();
+Q_dim = Qs.*params.Q0;
+N_dim = Ns.*params.N0;
+S_dim = Ss.*params.S0;
+subplot(3,1,1);surface(ts,params.sigma*params.x0,Q_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Flow (m^3/s)');set(gca,'Ydir','Reverse')
+subplot(3,1,2);surface(ts,params.sigma*params.x0,N_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
+subplot(3,1,3);surface(ts,params.sigma*params.x0,S_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
+
+%% Functions
 function F = combined_hydro_ice_eqns(QNShuxg,params)
     % unpack variables
     M = params.M;
@@ -166,7 +205,7 @@ function F = combined_hydro_ice_eqns(QNShuxg,params)
 
     if params.hydro_psi_from_ice_h
         h_interp = interp1(sigma,h,params.x_array,'linear','extrap');
-        params.psi = (rho_w*g*sin(0.001)-gradient(params.rho_i*params.g*h_interp*params.h0)./gradient(params.sigma.*params.x0))./params.psi0;
+        params.psi = (params.rho_w*params.g*sin(0.001)-gradient(params.rho_i*params.g*h_interp*params.h0)./gradient(params.sigma.*params.x0))./params.psi0;
     else
         params.psi = 1*(1-3*exp(-20.*params.x_array));
     end
