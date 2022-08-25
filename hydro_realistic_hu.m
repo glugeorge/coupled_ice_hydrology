@@ -1,6 +1,6 @@
 % Solving hydrology equations using finite differences
 clear all;
-% Using new scales + realistic h and u
+% Using new scales + realistic h, u
 % I think this would be the initial model to look at as a baseline
 
 % Load in determined steady state h, u 
@@ -11,8 +11,8 @@ load steady_params.mat;
 
 h_grid = params.sigma_elem*xg; % nondimensionalized xgrid for h
 u_grid = params.sigma*xg; % nondimensionalized xgrid for u
-
-params.Nt = 1000;                    %number of time steps
+params.xg = xg;
+params.Nt = 100;                    %number of time steps
 params.year = 3600*24*365;  %number of seconds in a year
 params.dt = 0.05;
 params.Nx = 200;                    %number of grid points
@@ -21,12 +21,12 @@ params.sigGZ = 1; % 0.97;                %extent of coarse grid (where GL is at 
 %sigma1=linspace(params.sigGZ/(params.N1+0.5), params.sigGZ, params.N1);
 %sigma2=linspace(params.sigGZ, 1, params.Nx-params.N1+1);
 %params.sigma = [sigma1, sigma2(2:end)]';  
-params.sigma = linspace(0,h_grid(end),params.Nx)';%[linspace(params.sigGZ/(params.Nx+0.5),params.sigGZ,params.Nx)]';
+params.sigma = linspace(0,1,params.Nx)';%[linspace(params.sigGZ/(params.Nx+0.5),params.sigGZ,params.Nx)]';
 params.dsigma = diff(params.sigma); %grid spacing
 
 % interpolate h,u to same grid
-h_interp = interp1(h_grid,h,params.sigma,'linear','extrap');
-u_interp = interp1(u_grid,u,params.sigma,'linear','extrap');
+h_interp = interp1(h_grid,h,params.sigma*xg,'linear','extrap');
+u_interp = interp1(u_grid,u,params.sigma*xg,'linear','extrap');
 % scale constants
 % Define given constants
 A = 4.227e-25; % From Alex Robel's code
@@ -74,10 +74,10 @@ params.u = u_interp;
 % define psi with realistic h
 phi_b = 0.001; % slope
 p = rho_i*g*h_interp*params.h0;
-params.psi = (rho_w*g*sin(phi_b)-gradient(p)./gradient(params.sigma.*params.x0))./params.psi0;
+params.psi = (rho_w*g*sin(phi_b)-gradient(p)./gradient(params.sigma.*params.x0.*xg))./params.psi0;
 
 params.M = 1*10^-4/params.M0; 
-params.N_terminus = 0; %rho_i*g*h_interp(end)*params.h0/params.N0;
+params.N_terminus = 0;%rho_i*g*h_interp(end)*params.h0/params.N0;
 params.r = rho_i/rho_w;
 
 QNS = [Q; N; S];
@@ -107,6 +107,8 @@ Q_dim_1 = Qs.*params.Q0;
 N_dim_1 = Ns.*params.N0;
 S_dim_1 = Ss.*params.S0;
 ts = linspace(0,params.Nt*params.dt*params.th0./params.year,params.Nt);
+disp(xg*params.x0);
+figure()
 subplot(3,1,1);surface(ts,params.sigma*params.x0,Q_dim_1',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Flow (m^3/s)');set(gca,'Ydir','Reverse')
 subplot(3,1,2);surface(ts,params.sigma*params.x0,N_dim_1',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
 subplot(3,1,3);surface(ts,params.sigma*params.x0,S_dim_1',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
@@ -140,7 +142,6 @@ legend('Location','northwest');
 
 save 'realistic_hu.mat' Q_dim_1 N_dim_1 S_dim_1 u_interp
 
-
 %% Function to solve
 function F = hydro_eqns(QNS,params)
     M = params.M;
@@ -149,36 +150,39 @@ function F = hydro_eqns(QNS,params)
     Q = QNS(1:Nx);
     N = QNS(Nx+1:2*Nx);
     S = QNS(2*Nx+1:3*Nx);
+    xg = params.xg;
+    xg_old = xg;
+    sigma = params.sigma;
     % Q
     fq(1) = Q(1) - Q_in; % Boundary condition
 
     fq(2:Nx-1) = (params.eps_r*(params.r-1))*abs(Q(2:Nx-1)).^3./S(2:Nx-1).^(8/3) +...
                         params.eps_r.*S(2:Nx-1).*N(2:Nx-1).^3 + M + ...
-                        params.eps_r.*params.beta.*params.u(2:Nx-1).*(S(3:Nx)-S(1:Nx-2))./(2*params.dsigma(2:Nx-1)) - ...
-                        (Q(3:Nx)-Q(1:Nx-2))./(2*params.dsigma(2:Nx-1));
+                        params.eps_r.*params.beta.*params.u(2:Nx-1).*(S(3:Nx)-S(1:Nx-2))./(2*xg*params.dsigma(2:Nx-1)) - ...
+                        (Q(3:Nx)-Q(1:Nx-2))./(2*xg*params.dsigma(2:Nx-1));
     fq(Nx) = (params.eps_r*(params.r-1))*abs(Q(Nx)).^3./S(Nx).^(8/3) +...
                         params.eps_r*S(Nx).*N(Nx).^3 + M + ...
-                        params.eps_r.*params.beta.*params.u(Nx).*(S(Nx)-S(Nx-1))./(params.dsigma(Nx-1)) - ...
-                        (Q(Nx)-Q(Nx-1))./(params.dsigma(Nx-1)); % one sided difference instead
+                        params.eps_r.*params.beta.*params.u(Nx).*(S(Nx)-S(Nx-1))./(xg*params.dsigma(Nx-1)) - ...
+                        (Q(Nx)-Q(Nx-1))./(xg*params.dsigma(Nx-1)); % one sided difference instead
     % N 
     fn(1) = Q(1).*abs(Q(1))./(S(1).^(8/3)) - params.psi(1) - ...
-                        params.delta*(N(2)-N(1))./(params.dsigma(1)); % use 1 sided difference instead of symmetry argument
+                        params.delta*(N(2)-N(1))./(xg*params.dsigma(1)); % use 1 sided difference instead of symmetry argument
     fn(2:Nx-1) =  Q(2:Nx-1).*abs(Q(2:Nx-1))./(S(2:Nx-1).^(8/3)) - params.psi(2:Nx-1) - ...
-                        params.delta*(N(3:Nx)-N(1:Nx-2))./(2*params.dsigma(2:Nx-1));
+                        params.delta*(N(3:Nx)-N(1:Nx-2))./(2*xg*params.dsigma(2:Nx-1));
     fn(Nx) = N(Nx) - params.N_terminus; % Boundary condition
 
     % S
     fs(1) = abs(Q(1)).^3./(S(1).^(8/3)) - ... 
-                        S(1).*N(1).^3 - ...
-                        params.beta.*params.u(1).*(S(2)-S(1))./(params.dsigma(1)) - ...
+                        S(1).*N(1).^3 + ...
+                        (sigma(1)*(xg-xg_old)/params.dt - params.beta.*params.u(1)).*(S(2)-S(1))./(xg*params.dsigma(1)) - ...
                         (S(1)-params.S_old(1))./params.dt; % one sided differece
     fs(2:Nx-1)= abs(Q(2:Nx-1)).^3./(S(2:Nx-1).^(8/3)) - ... 
-                        S(2:Nx-1).*N(2:Nx-1).^3 - ...
-                        params.beta.*params.u(2:Nx-1).*(S(3:Nx)-S(1:Nx-2))./(2*params.dsigma(2:Nx-1)) - ...
+                        S(2:Nx-1).*N(2:Nx-1).^3 + ...
+                        (sigma(2:Nx-1).*(xg-xg_old)./params.dt - params.beta.*params.u(2:Nx-1)).*(S(3:Nx)-S(1:Nx-2))./(2*xg*params.dsigma(2:Nx-1)) - ...
                         (S(2:Nx-1)-params.S_old(2:Nx-1))./params.dt; 
     fs(Nx)= abs(Q(Nx)).^3./(S(Nx).^(8/3)) - ... 
-                        S(Nx).*N(Nx).^3 - ...
-                        params.beta.*params.u(Nx).*(S(Nx)-S(Nx-1))./(params.dsigma(Nx-1)) - ...
+                        S(Nx).*N(Nx).^3 + ...
+                        (sigma(Nx).*(xg-xg_old)./params.dt - params.beta.*params.u(Nx)).*(S(Nx)-S(Nx-1))./(xg*params.dsigma(Nx-1)) - ...
                         (S(Nx)-params.S_old(Nx))./params.dt; % one sided differece
 
     F = [fq;fn;fs];
