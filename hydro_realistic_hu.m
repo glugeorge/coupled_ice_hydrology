@@ -47,7 +47,7 @@ params.x0 = 10*10^3;
 params.h0 = 100;
 params.Q0 = 1500;
 
-params.psi0 = rho_i*g*0.001;
+params.psi0 = rho_w*g*0.001;
 params.M0 = params.Q0/params.x0;
 params.m0 = params.Q0*params.psi0/L;
 params.eps_r = params.m0*params.x0/(rho_i*params.Q0);

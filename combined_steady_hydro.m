@@ -66,16 +66,16 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
 params.Nt = 100;                    %number of time steps
-params.end_year = 0.1;
+params.end_year = 5;
 
 params.dt = params.end_year*params.year/params.Nt;
 
 %% Determine at what points there is coupling
 % set off for initial condition
 % 1 - coupling on, 0 - coupling off
-params.hydro_u_from_ice_u = 0;
-params.hydro_psi_from_ice_h = 0;
-params.ice_N_from_hydro = 0;
+params.hydro_u_from_ice_u = 1;
+params.hydro_psi_from_ice_h = 1;
+params.ice_N_from_hydro = 1;
 
 %% Initial "steady state" conditions
 Q = 0.001*ones(params.Nx,1);
@@ -171,7 +171,6 @@ function F = combined_hydro_ice_eqns(QNShuxg,params)
 
     %grid params unpack
     dt = params.dt/params.t0;
-    dth= params.dt/params.th0;
     ds = params.dsigma;
     Nx = params.Nx;
     N1 = params.N1;
@@ -211,7 +210,7 @@ function F = combined_hydro_ice_eqns(QNShuxg,params)
     if params.ice_N_from_hydro
         N_ice = interp1(params.sigma_h,N,sigma_elem);
     else
-        N_ice = 100000*ones(size(h_old))./params.N0;
+        N_ice = 1000*ones(size(h_old))./params.N0;
     end
 
     % Q
@@ -234,17 +233,14 @@ function F = combined_hydro_ice_eqns(QNShuxg,params)
 
     % S
     fs(1) = abs(Q(1)).^3./(S(1).^(8/3)) - ... 
-                        S(1).*N(1).^3 + ...
-                        (ss.*params.sigma_h(1)*(xg-xg_old)/dth - params.beta.*u_ice_interp(1)).*(S(2)-S(1))./(xg*params.dsigma_h(1)) - ...
-                        ss.*(S(1)-params.S_old(1))./dth; % one sided difference
+                        S(1).*N(1).^3 - ...
+                        params.beta.*u_ice_interp(1).*(S(2)-S(1))./(xg*params.dsigma_h(1)); % one sided difference
     fs(2:Nx-1)= abs(Q(2:Nx-1)).^3./(S(2:Nx-1).^(8/3)) - ... 
-                        S(2:Nx-1).*N(2:Nx-1).^3 + ...
-                        (ss.*params.sigma_h(2:Nx-1).*(xg-xg_old)./dth - params.beta.*u_ice_interp(2:Nx-1)).*(S(3:Nx)-S(1:Nx-2))./(2*xg*params.dsigma_h(2:Nx-1)) - ...
-                        ss.*(S(2:Nx-1)-params.S_old(2:Nx-1))./dth; 
+                        S(2:Nx-1).*N(2:Nx-1).^3 - ...
+                        params.beta.*u_ice_interp(2:Nx-1).*(S(3:Nx)-S(1:Nx-2))./(2*xg*params.dsigma_h(2:Nx-1)); 
     fs(Nx)= abs(Q(Nx)).^3./(S(Nx).^(8/3)) - ... 
-                        S(Nx).*N(Nx).^3 + ...
-                        (ss.*params.sigma_h(Nx).*(xg-xg_old)./dth - params.beta.*u_ice_interp(Nx)).*(S(Nx)-S(Nx-1))./(xg*params.dsigma_h(Nx-1)) - ...
-                        ss.*(S(Nx)-params.S_old(Nx))./dth; % one sided difference
+                        S(Nx).*N(Nx).^3 - ...
+                        params.beta.*u_ice_interp(Nx).*(S(Nx)-S(Nx-1))./(xg*params.dsigma_h(Nx-1)); % one sided difference
 
     % ice sheet equations
     Fh(1)      = ss.*(h(1)-h_old(1))./dt + (2.*h(1).*u(1))./(ds(1).*xg) - a;

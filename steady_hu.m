@@ -1,6 +1,7 @@
+% Steady state hydro given steady state velocity
 % Solving hydrology equations using finite differences
 clear all;
-% Using new scales + realistic h
+% Using new scales + realistic h, u
 % I think this would be the initial model to look at as a baseline
 
 % Load in determined steady state h, u 
@@ -24,8 +25,9 @@ params.sigGZ = 1; % 0.97;                %extent of coarse grid (where GL is at 
 params.sigma = linspace(0,1,params.Nx)';%[linspace(params.sigGZ/(params.Nx+0.5),params.sigGZ,params.Nx)]';
 params.dsigma = diff(params.sigma); %grid spacing
 
-% interpolate h to same grid
-h_interp = interp1(h_grid,h,params.sigma.*xg,'linear','extrap');
+% interpolate h,u to same grid
+h_interp = interp1(h_grid,h,params.sigma*xg,'linear','extrap');
+u_interp = interp1(u_grid,u,params.sigma*xg,'linear','extrap');
 % scale constants
 % Define given constants
 A = 4.227e-25; % From Alex Robel's code
@@ -69,7 +71,7 @@ Q = 0.001*ones(params.Nx,1);
 N = ones(params.Nx,1);
 S = 5/params.S0*ones(params.Nx,1); 
 params.S_old = S;
-params.u = params.th0*0.*ones(params.Nx,1)./(params.year*params.x0); % Set 0 velocity first
+params.u = u_interp;
 % define psi with realistic h
 phi_b = 0.001; % slope
 p = rho_i*g*h_interp*params.h0;
@@ -102,44 +104,44 @@ end
 
 
 %% Plotting stuff
-Q_dim = Qs.*params.Q0;
-N_dim = Ns.*params.N0;
-S_dim = Ss.*params.S0;
+Q_dim_1 = Qs.*params.Q0;
+N_dim_1 = Ns.*params.N0;
+S_dim_1 = Ss.*params.S0;
 ts = linspace(0,params.Nt*params.dt*params.th0./params.year,params.Nt);
 disp(xg*params.x0);
 figure()
-subplot(3,1,1);surface(ts,params.sigma,Q_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Flow (m^3/s)');set(gca,'Ydir','Reverse')
-subplot(3,1,2);surface(ts,params.sigma,N_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
-subplot(3,1,3);surface(ts,params.sigma,S_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
+subplot(3,1,1);surface(ts,params.sigma*params.x0,Q_dim_1',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Flow (m^3/s)');set(gca,'Ydir','Reverse')
+subplot(3,1,2);surface(ts,params.sigma*params.x0,N_dim_1',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
+subplot(3,1,3);surface(ts,params.sigma*params.x0,S_dim_1',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
 
 figure('Name','Evolution of Drainage');
 subplot(3,1,1);
-plot(ts,N_dim(:,1),'DisplayName','Channel Entrance');
+plot(ts,N_dim_1(:,1),'DisplayName','Channel Entrance');
 hold on;
-plot(ts,N_dim(:,end),'--','DisplayName','Channel Exit');
+plot(ts,N_dim_1(:,end),'--','DisplayName','Channel Exit');
 xlabel('time, \emph{t} (years)','Interpreter','latex');
 ylabel('Effective Pressure, \emph{N} (Pa)','Interpreter','latex');
 title('Effective Pressure over time');
 
 subplot(3,1,2);
-plot(ts,Q_dim(:,1),'DisplayName','Channel Entrance');
+plot(ts,Q_dim_1(:,1),'DisplayName','Channel Entrance');
 hold on;
-plot(ts,Q_dim(:,end),'DisplayName','Channel Exit');
+plot(ts,Q_dim_1(:,end),'DisplayName','Channel Exit');
 xlabel('time, \emph{t} (years)','Interpreter','latex');
 ylabel('channel flow rate, \emph{Q} $(m^{3} s^{-1})$','Interpreter','latex');
 title('Flow over time');
 legend('Location','northwest');
 
 subplot(3,1,3);
-plot(ts,S_dim(:,1),'-o','DisplayName','Channel Entrance');
+plot(ts,S_dim_1(:,1),'-o','DisplayName','Channel Entrance');
 hold on;
-plot(ts,S_dim(:,end),'-o','DisplayName','Channel Exit');
+plot(ts,S_dim_1(:,end),'-o','DisplayName','Channel Exit');
 xlabel('time, \emph{t} (years)','Interpreter','latex');
 ylabel('channel cross-sectional area, \emph{S} $(m^2)$','Interpreter','latex');
 title('Channel area over time');
 legend('Location','northwest');
 
-save 'realistic_h.mat' Q_dim N_dim S_dim ts
+save 'realistic_hu.mat' Q_dim_1 N_dim_1 S_dim_1 u_interp
 
 %% Function to solve
 function F = hydro_eqns(QNS,params)
@@ -173,16 +175,16 @@ function F = hydro_eqns(QNS,params)
     % S
     fs(1) = abs(Q(1)).^3./(S(1).^(8/3)) - ... 
                         S(1).*N(1).^3 + ...
-                        (sigma(1)*(xg-xg_old)/params.dt - params.beta.*params.u(1)).*(S(2)-S(1))./(xg*params.dsigma(1)) - ...
-                        (S(1)-params.S_old(1))./params.dt; % one sided differece
+                        (0*sigma(1)*(xg-xg_old)/params.dt - params.beta.*params.u(1)).*(S(2)-S(1))./(xg*params.dsigma(1)) - ...
+                        0*(S(1)-params.S_old(1))./params.dt; % one sided differece
     fs(2:Nx-1)= abs(Q(2:Nx-1)).^3./(S(2:Nx-1).^(8/3)) - ... 
                         S(2:Nx-1).*N(2:Nx-1).^3 + ...
-                        (sigma(2:Nx-1).*(xg-xg_old)./params.dt - params.beta.*params.u(2:Nx-1)).*(S(3:Nx)-S(1:Nx-2))./(2*xg*params.dsigma(2:Nx-1)) - ...
-                        (S(2:Nx-1)-params.S_old(2:Nx-1))./params.dt; 
+                        (0*sigma(2:Nx-1).*(xg-xg_old)./params.dt - params.beta.*params.u(2:Nx-1)).*(S(3:Nx)-S(1:Nx-2))./(2*xg*params.dsigma(2:Nx-1)) - ...
+                        0*(S(2:Nx-1)-params.S_old(2:Nx-1))./params.dt; 
     fs(Nx)= abs(Q(Nx)).^3./(S(Nx).^(8/3)) - ... 
                         S(Nx).*N(Nx).^3 + ...
-                        (sigma(Nx).*(xg-xg_old)./params.dt - params.beta.*params.u(Nx)).*(S(Nx)-S(Nx-1))./(xg*params.dsigma(Nx-1)) - ...
-                        (S(Nx)-params.S_old(Nx))./params.dt; % one sided differece
+                        (0*sigma(Nx).*(xg-xg_old)./params.dt - params.beta.*params.u(Nx)).*(S(Nx)-S(Nx-1))./(xg*params.dsigma(Nx-1)) - ...
+                        0*(S(Nx)-params.S_old(Nx))./params.dt; % one sided differece
 
     F = [fq;fn;fs];
 end
