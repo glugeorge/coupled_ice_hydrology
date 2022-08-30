@@ -12,7 +12,7 @@ load steady_params.mat;
 h_grid = params.sigma_elem*xg; % nondimensionalized xgrid for h
 u_grid = params.sigma*xg; % nondimensionalized xgrid for u
 params.xg = xg;
-params.Nt = 100;                    %number of time steps
+params.Nt = 1000;                    %number of time steps
 params.year = 3600*24*365;  %number of seconds in a year
 params.dt = 0.05;
 params.Nx = 200;                    %number of grid points
@@ -76,7 +76,7 @@ phi_b = 0.001; % slope
 p = rho_i*g*h_interp*params.h0;
 params.psi = (rho_w*g*sin(phi_b)-gradient(p)./gradient(params.sigma.*params.x0.*xg))./params.psi0;
 
-params.M = 1*10^-4/params.M0; 
+params.M = 5*10^-4/params.M0; 
 params.N_terminus = 0;%rho_i*g*h_interp(end)*params.h0/params.N0;
 params.r = rho_i/rho_w;
 
@@ -109,9 +109,9 @@ S_dim_1 = Ss.*params.S0;
 ts = linspace(0,params.Nt*params.dt*params.th0./params.year,params.Nt);
 disp(xg*params.x0);
 figure()
-subplot(3,1,1);surface(ts,params.sigma*params.x0,Q_dim_1',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Flow (m^3/s)');set(gca,'Ydir','Reverse')
-subplot(3,1,2);surface(ts,params.sigma*params.x0,N_dim_1',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
-subplot(3,1,3);surface(ts,params.sigma*params.x0,S_dim_1',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
+subplot(3,1,1);surface(ts,params.sigma,Q_dim_1',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Flow (m^3/s)');set(gca,'Ydir','Reverse')
+subplot(3,1,2);surface(ts,params.sigma,N_dim_1',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
+subplot(3,1,3);surface(ts,params.sigma,S_dim_1',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
 
 figure('Name','Evolution of Drainage');
 subplot(3,1,1);

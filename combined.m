@@ -66,16 +66,15 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
 params.Nt = 100;                    %number of time steps
-params.end_year = 0.1;
+params.end_year = 1000;
 
 params.dt = params.end_year*params.year/params.Nt;
 
 %% Determine at what points there is coupling
-% set off for initial condition
 % 1 - coupling on, 0 - coupling off
-params.hydro_u_from_ice_u = 0;
-params.hydro_psi_from_ice_h = 0;
-params.ice_N_from_hydro = 0;
+params.hydro_u_from_ice_u = 1;
+params.hydro_psi_from_ice_h = 1;
+params.ice_N_from_hydro = 1;
 
 %% Initial "steady state" conditions
 Q = 0.001*ones(params.Nx,1);
@@ -196,20 +195,20 @@ function F = combined_hydro_ice_eqns(QNShuxg,params)
     
     % Assign values based off coupling parameters
     if params.hydro_u_from_ice_u
-        u_ice_interp = interp1(sigma_elem,u,params.sigma_h,"linear","extrap");
+        u_ice_interp = interp1(sigma,u,params.sigma_h,"linear","extrap");
     else
         u_ice_interp = 1000.*ones(params.Nx,1)./(params.year*params.u0);
     end
 
     if params.hydro_psi_from_ice_h
-        h_interp = interp1(sigma,h,params.sigma_h,'linear','extrap');
+        h_interp = interp1(sigma_elem,h,params.sigma_h,'linear','extrap');
         params.psi = (params.rho_w*params.g*sin(0.001)-gradient(params.rho_i*params.g*h_interp*params.h0)./gradient(params.sigma_h.*params.x0*xg))./params.psi0;
     else
         params.psi = 1*(1-3*exp(-20.*params.sigma_h));
     end
 
     if params.ice_N_from_hydro
-        N_ice = interp1(params.sigma_h,N,sigma_elem);
+        N_ice = interp1(params.sigma_h,N,sigma);
     else
         N_ice = 100000*ones(size(h_old))./params.N0;
     end

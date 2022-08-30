@@ -66,7 +66,7 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
 params.Nt = 100;                    %number of time steps
-params.end_year = 100;
+params.end_year = 1000;
 
 params.dt = params.end_year*params.year/params.Nt;
 
@@ -158,7 +158,7 @@ for t=2:params.Nt
     Qs(t,:)=Q;
     Ns(t,:)=N;
     Ss(t,:)=S;
-    params.N_ice = interp1(params.sigma_h,N,params.sigma_elem,'linear','extrap');
+    params.N_ice = interp1(params.sigma_h,N,params.sigma,'linear','extrap');
 end
 
 %% Plotting

@@ -66,7 +66,7 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
 params.Nt = 100;                    %number of time steps
-params.end_year = 5;
+params.end_year = 1000;
 
 params.dt = params.end_year*params.year/params.Nt;
 
@@ -155,6 +155,32 @@ subplot(3,1,1);surface(ts,params.sigma_h,Q_dim',EdgeColor='None');colorbar;xlabe
 subplot(3,1,2);surface(ts,params.sigma_h,N_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
 subplot(3,1,3);surface(ts,params.sigma_h,S_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
 
+figure('Name','Evolution of Drainage');
+subplot(3,1,1);
+plot(ts,N_dim(:,1),'DisplayName','Channel Entrance');
+hold on;
+plot(ts,N_dim(:,end),'--','DisplayName','Channel Exit');
+xlabel('time, \emph{t} (years)','Interpreter','latex');
+ylabel('Effective Pressure, \emph{N} (Pa)','Interpreter','latex');
+title('Effective Pressure over time');
+
+subplot(3,1,2);
+plot(ts,Q_dim(:,1),'DisplayName','Channel Entrance');
+hold on;
+plot(ts,Q_dim(:,end),'DisplayName','Channel Exit');
+xlabel('time, \emph{t} (years)','Interpreter','latex');
+ylabel('channel flow rate, \emph{Q} $(m^{3} s^{-1})$','Interpreter','latex');
+title('Flow over time');
+legend('Location','northwest');
+
+subplot(3,1,3);
+plot(ts,S_dim(:,1),'-o','DisplayName','Channel Entrance');
+hold on;
+plot(ts,S_dim(:,end),'-o','DisplayName','Channel Exit');
+xlabel('time, \emph{t} (years)','Interpreter','latex');
+ylabel('channel cross-sectional area, \emph{S} $(m^2)$','Interpreter','latex');
+title('Channel area over time');
+legend('Location','northwest');
 %% Functions
 function F = combined_hydro_ice_eqns(QNShuxg,params)
     % unpack variables
@@ -195,20 +221,20 @@ function F = combined_hydro_ice_eqns(QNShuxg,params)
     
     % Assign values based off coupling parameters
     if params.hydro_u_from_ice_u
-        u_ice_interp = interp1(sigma_elem,u,params.sigma_h,"linear","extrap");
+        u_ice_interp = interp1(sigma,u,params.sigma_h,"linear","extrap");
     else
         u_ice_interp = 1000.*ones(params.Nx,1)./(params.year*params.u0);
     end
 
     if params.hydro_psi_from_ice_h
-        h_interp = interp1(sigma,h,params.sigma_h,'linear','extrap');
+        h_interp = interp1(sigma_elem,h,params.sigma_h,'linear','extrap');
         params.psi = (params.rho_w*params.g*sin(0.001)-gradient(params.rho_i*params.g*h_interp*params.h0)./gradient(params.sigma_h.*params.x0*xg))./params.psi0;
     else
         params.psi = 1*(1-3*exp(-20.*params.sigma_h));
     end
 
     if params.ice_N_from_hydro
-        N_ice = interp1(params.sigma_h,N,sigma_elem);
+        N_ice = interp1(params.sigma_h,N,sigma);
     else
         N_ice = 1000*ones(size(h_old))./params.N0;
     end

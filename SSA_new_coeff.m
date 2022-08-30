@@ -50,7 +50,7 @@ params.r = params.rho_i/params.rho_w;
 params.transient = 0;   %0 if solving for steady-state, 1 if solving for transient evolution
 
 %% Grid parameters
-params.tfinal = 10.*params.year;   %length of transient simulation
+params.tfinal = 10000.*params.year;   %length of transient simulation
 params.Nt = 100;                    %number of time steps
 params.dt = params.tfinal/params.Nt;%time step length
 params.Nx = 200;                    %number of grid points
@@ -122,8 +122,8 @@ subplot(3,1,2);surface(ts,params.sigma_elem,hs'.*params.h0,EdgeColor='None');col
 %subplot(3,1,3);surface(ts,params.sigma,us'.*params.uscale.*params.year,EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('sigma');title('velocity (m/yr)');set(gca,'Ydir','Reverse')
 %%
 N = 100000;
-u_new = us'.*params.u0
-tau = params.C.*N.*(u_new./(u_new+params.As*(params.C*N)^params.n))
+u_new = us'.*params.u0;
+tau = params.C.*N.*(u_new./(u_new+params.As*(params.C*N)^params.n)); 
 figure(3)
 contourf(ts,params.sigma,tau);colorbar;xlabel('time (yr)');ylabel('sigma');title('shear stress (Pa)');set(gca,'Ydir','Reverse');
 %% Implicit system of equations function (using discretization scheme from Schoof 2007)

@@ -12,7 +12,7 @@ load steady_params.mat;
 h_grid = params.sigma_elem*xg; % nondimensionalized xgrid for h
 u_grid = params.sigma*xg; % nondimensionalized xgrid for u
 params.xg = xg;
-params.Nt = 100;                    %number of time steps
+params.Nt = 1000;                    %number of time steps
 params.year = 3600*24*365;  %number of seconds in a year
 params.dt = 0.05;
 params.Nx = 200;                    %number of grid points
@@ -75,7 +75,7 @@ phi_b = 0.001; % slope
 p = rho_i*g*h_interp*params.h0;
 params.psi = (rho_w*g*sin(phi_b)-gradient(p)./gradient(params.sigma.*params.x0.*xg))./params.psi0;
 
-params.M = 1*10^-4/params.M0; 
+params.M = 5*10^-4/params.M0; 
 params.N_terminus = 0;%rho_i*g*h_interp(end)*params.h0/params.N0;
 params.r = rho_i/rho_w;
 

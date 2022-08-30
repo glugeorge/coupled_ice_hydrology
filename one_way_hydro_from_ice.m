@@ -66,7 +66,7 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
 params.Nt = 1000;                    %number of time steps
-params.end_year = 10;
+params.end_year = 40;
 
 params.dt = params.end_year*params.year/params.Nt;
 
@@ -113,8 +113,6 @@ huxg_t = huxg_init;
 params.h_old = huxg_t(1:params.Nx);
 params.xg_old = huxg_t(end);
 xgs(1) = params.xg_old;
-params.transient = 1;
-params.accum = 0.8/params.year;
 
 params.h_old = h;
 params.xg_old = xg;
@@ -170,8 +168,8 @@ figure();
 Q_dim = Qs.*params.Q0;
 N_dim = Ns.*params.N0;
 S_dim = Ss.*params.S0;
-subplot(3,1,1);surface(ts,params.sigma_h,Q_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Flow (m^3/s)');set(gca,'Ydir','Reverse')
-subplot(3,1,2);surface(ts,params.sigma_h,N_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
+subplot(3,1,1);surface(ts,params.sigma_h,N_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
+subplot(3,1,2);surface(ts,params.sigma_h,Q_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Flow (m^3/s)');set(gca,'Ydir','Reverse')
 subplot(3,1,3);surface(ts,params.sigma_h,S_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
 
 figure('Name','Evolution of Drainage');
