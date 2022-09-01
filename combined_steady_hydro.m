@@ -66,7 +66,7 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
 params.Nt = 100;                    %number of time steps
-params.end_year = 1000;
+params.end_year = 10e3;
 
 params.dt = params.end_year*params.year/params.Nt;
 
@@ -88,7 +88,8 @@ params.accum = 1/params.year;
 xg = 100e3/params.x0;
 hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
 h = 1 - (1-hf).*params.sigma;
-u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3;
+u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3;
+params.Q_in = 10/params.Q0;
 
 params.h_old = h;
 params.xg_old = xg;
@@ -122,7 +123,8 @@ params.h_old = h;
 params.xg_old =xg;
 params.S_old = S;
 params.transient = 1;
-params.accum = 0.8/params.year;
+params.accum = 0.1/params.year;
+params.Q_in = 10.9/params.Q0;
 
 for t=1:params.Nt
     flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
@@ -144,7 +146,7 @@ end
 ts = linspace(0,params.end_year,params.Nt);
 figure();
 subplot(3,1,1);plot(ts,xgs.*params.x0./1e3,'linewidth',3);xlabel('time (yr)');ylabel('x_g');
-subplot(3,1,2);surface(ts,params.sigma_elem,hs'.*params.h0,EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('sigma');title('thickness (m)');set(gca,'Ydir','Reverse');
+subplot(3,1,2);contourf(ts,params.sigma_elem,hs'.*params.h0);colorbar;xlabel('time (yr)');ylabel('sigma');title('thickness (m)');set(gca,'Ydir','Reverse');
 subplot(3,1,3);contourf(ts,params.sigma,us'.*params.u0.*params.year);colorbar;xlabel('time (yr)');ylabel('sigma');title('velocity (m/yr)');set(gca,'Ydir','Reverse');
 
 figure();
@@ -185,7 +187,7 @@ legend('Location','northwest');
 function F = combined_hydro_ice_eqns(QNShuxg,params)
     % unpack variables
     M = params.M;
-    Q_in = 10/params.Q0;
+    Q_in = params.Q_in;
     Nx = params.Nx;
     Q = QNShuxg(1:Nx);
     N = QNShuxg(Nx+1:2*Nx);
@@ -290,12 +292,12 @@ function F = combined_hydro_ice_eqns(QNShuxg,params)
     Fu(1)      = (alpha).*(1./(xg.*ds(1)).^((1/nglen)+1)).*...
                  (h(2).*(u(2)-u(1)).*abs(u(2)-u(1)).^((1/nglen)-1) -...
                   h(1).*(2*u(1)).*abs(2*u(1)).^((1/nglen)-1)) -...
-                  gamma.*N_ice(1).* u(1)./(u(1) + N_ice(1).^nglen) -...
+                  gamma.*N_ice(1).* (u(1)./(u(1) + N_ice(1).^nglen)).^m -...
                   0.5.*(h(1)+h(2)).*(h(2)-b(2)-h(1)+b(1))./(xg.*ds(1));
     Fu(2:Nx-1) = (alpha).*(1./(xg.*ds(2:Nx-1)).^((1/nglen)+1)).*...
                  (h(3:Nx).*(u(3:Nx)-u(2:Nx-1)).*abs(u(3:Nx)-u(2:Nx-1)).^((1/nglen)-1) -...
                   h(2:Nx-1).*(u(2:Nx-1)-u(1:Nx-2)).*abs(u(2:Nx-1)-u(1:Nx-2)).^((1/nglen)-1)) -...
-                  gamma.*N_ice(2:Nx-1).*u(2:Nx-1)./(u(2:Nx-1) + N_ice(2:Nx-1).^nglen) -...
+                  gamma.*N_ice(2:Nx-1).*(u(2:Nx-1)./(u(2:Nx-1) + N_ice(2:Nx-1).^nglen)).^m -...
                   0.5.*(h(2:Nx-1)+h(3:Nx)).*(h(3:Nx)-b(3:Nx)-h(2:Nx-1)+b(2:Nx-1))./(xg.*ds(2:Nx-1));
     Fu(N1)     = (u(N1+1)-u(N1))/ds(N1) - (u(N1)-u(N1-1))/ds(N1-1);
     Fu(Nx)     = alpha.*(1./(xg.*ds(Nx-1)).^(1/nglen)).*...

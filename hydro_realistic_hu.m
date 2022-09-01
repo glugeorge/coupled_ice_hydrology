@@ -4,10 +4,8 @@ clear all;
 % I think this would be the initial model to look at as a baseline
 
 % Load in determined steady state h, u 
-load steady_h.mat;
-load steady_xg.mat;
-load steady_u.mat;
-load steady_params.mat;
+load init_cond.mat
+
 
 h_grid = params.sigma_elem*xg; % nondimensionalized xgrid for h
 u_grid = params.sigma*xg; % nondimensionalized xgrid for u

@@ -50,7 +50,7 @@ params.r = params.rho_i/params.rho_w;
 params.transient = 0;   %0 if solving for steady-state, 1 if solving for transient evolution
 
 %% Grid parameters
-params.tfinal = 10000.*params.year;   %length of transient simulation
+params.tfinal = 10e3.*params.year;   %length of transient simulation
 params.Nt = 100;                    %number of time steps
 params.dt = params.tfinal/params.Nt;%time step length
 params.Nx = 200;                    %number of grid points
@@ -87,7 +87,7 @@ u = huxg_init(params.Nx+1:2*params.Nx);
 xg = huxg_init(end);
 hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
 
-
+save init_cond.mat
 %% Calculate transient GL evolution over bedrock peak
 xgs = nan.*ones(1,params.Nt);
 hs = nan.*ones(params.Nt,params.Nx);
@@ -118,7 +118,7 @@ subplot(3,1,1);plot(ts,xgs.*params.x0./1e3,'linewidth',3);xlabel('time (yr)');yl
 %subplot(3,1,2);contourf(ts,params.sigma_elem,hs'.*params.hscale);colorbar;xlabel('time (yr)');ylabel('sigma');title('thickness (m)');set(gca,'Ydir','Reverse')
 subplot(3,1,3);contourf(ts,params.sigma,us'.*params.u0.*params.year);colorbar;xlabel('time (yr)');ylabel('sigma');title('velocity (m/yr)');set(gca,'Ydir','Reverse')
 
-subplot(3,1,2);surface(ts,params.sigma_elem,hs'.*params.h0,EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('sigma');title('thickness (m)');set(gca,'Ydir','Reverse')
+subplot(3,1,2);contourf(ts,params.sigma_elem,hs'.*params.h0);colorbar;xlabel('time (yr)');ylabel('sigma');title('thickness (m)');set(gca,'Ydir','Reverse')
 %subplot(3,1,3);surface(ts,params.sigma,us'.*params.uscale.*params.year,EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('sigma');title('velocity (m/yr)');set(gca,'Ydir','Reverse')
 %%
 N = 100000;
@@ -182,12 +182,12 @@ function F = flowline_eqns(huxg,params)
     Fu(1)      = (alpha).*(1./(xg.*ds(1)).^((1/nglen)+1)).*...
                  (h(2).*(u(2)-u(1)).*abs(u(2)-u(1)).^((1/nglen)-1) -...
                   h(1).*(2*u(1)).*abs(2*u(1)).^((1/nglen)-1)) -...
-                  gamma.*N(1).* u(1)./(u(1) + N(1).^nglen) -...
+                  gamma.*N(1).* (u(1)./(u(1) + N(1).^nglen)).^m -...
                   0.5.*(h(1)+h(2)).*(h(2)-b(2)-h(1)+b(1))./(xg.*ds(1));
     Fu(2:Nx-1) = (alpha).*(1./(xg.*ds(2:Nx-1)).^((1/nglen)+1)).*...
                  (h(3:Nx).*(u(3:Nx)-u(2:Nx-1)).*abs(u(3:Nx)-u(2:Nx-1)).^((1/nglen)-1) -...
                   h(2:Nx-1).*(u(2:Nx-1)-u(1:Nx-2)).*abs(u(2:Nx-1)-u(1:Nx-2)).^((1/nglen)-1)) -...
-                  gamma.*N(2:Nx-1).*u(2:Nx-1)./(u(2:Nx-1) + N(2:Nx-1).^nglen) -...
+                  gamma.*N(2:Nx-1).*(u(2:Nx-1)./(u(2:Nx-1) + N(2:Nx-1).^nglen)).^m -...
                   0.5.*(h(2:Nx-1)+h(3:Nx)).*(h(3:Nx)-b(3:Nx)-h(2:Nx-1)+b(2:Nx-1))./(xg.*ds(2:Nx-1));
     Fu(N1)     = (u(N1+1)-u(N1))/ds(N1) - (u(N1)-u(N1-1))/ds(N1-1);
     Fu(Nx)     = alpha.*(1./(xg.*ds(Nx-1)).^(1/nglen)).*...
