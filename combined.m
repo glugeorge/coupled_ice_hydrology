@@ -2,6 +2,9 @@ close all
 clear all
 clc
 
+%% If load initial conditions
+prescribe = 0;
+load init_cond.mat;
 %% Bed parameters
 params.b0 = -100;           %bed topo at x=0
 params.bx = -1e-3;          %linear bed slope
@@ -65,8 +68,8 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
-params.Nt = 100;                    %number of time steps
-params.end_year = 10e3;
+params.Nt = 500;                    %number of time steps
+params.end_year = 5000;
 
 params.dt = params.end_year*params.year/params.Nt;
 
@@ -77,37 +80,52 @@ params.hydro_psi_from_ice_h = 1;
 params.ice_N_from_hydro = 1;
 
 %% Initial "steady state" conditions
-Q = 0.001*ones(params.Nx,1);
-N = ones(params.Nx,1);
-S = 5/params.S0*ones(params.Nx,1); 
-params.S_old = S;
-params.M = 5*10^-4/params.M0; 
-params.N_terminus = 0;
-params.accum = 1/params.year;
-xg = 100e3/params.x0;
-hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
-h = 1 - (1-hf).*params.sigma;
-u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3;
-params.Q_in = 1000/params.Q0;
+if prescribe
+    Q = 10*ones(params.Nx,1)./params.Q0;
+    N = 100000.*ones(params.Nx,1)./params.N0;
+    S = 5/params.S0*ones(params.Nx,1);
+    QNShuxg_init = [Q;N;S;h;u;xg];
+    params.Q_in = 10/params.Q0;
+    params.h_old = h;
+    params.xg_old = xg;
+    params.S_old = S;
+    params.M = 5*10^-4/params.M0; 
+    params.N_terminus = 0;
+    params.accum = 1/params.year;
+else
+    Q = 0.001*ones(params.Nx,1);
+    N = ones(params.Nx,1);
+    S = 5/params.S0*ones(params.Nx,1); 
+    params.S_old = S;
+    params.M = 5*10^-4/params.M0; 
+    params.N_terminus = 0;
+    params.accum = 1/params.year;
+    xg = 100e3/params.x0;
+    hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
+    h = 1 - (1-hf).*params.sigma;
+    u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3;
+    params.Q_in = 10/params.Q0;
+    
+    params.h_old = h;
+    params.xg_old = xg;
+    
+    sig_old = params.sigma;
+    sige_old = params.sigma_elem;
+    QNShuxg0 = [Q;N;S;h;u;xg];
+    options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
+    flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
+    
+    [QNShuxg_init,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
+    
+    Q = QNShuxg_init(1:params.Nx);
+    N = QNShuxg_init(params.Nx+1:2*params.Nx);
+    S = QNShuxg_init(2*params.Nx+1:3*params.Nx);
+    h = QNShuxg_init(3*params.Nx+1:4*params.Nx);
+    u = QNShuxg_init(4*params.Nx+1:5*params.Nx);
+    xg = QNShuxg_init(5*params.Nx+1);
+    hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
+end
 
-params.h_old = h;
-params.xg_old = xg;
-
-sig_old = params.sigma;
-sige_old = params.sigma_elem;
-QNShuxg0 = [Q;N;S;h;u;xg];
-options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
-flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
-
-[QNShuxg_init,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
-
-Q = QNShuxg_init(1:params.Nx);
-N = QNShuxg_init(params.Nx+1:2*params.Nx);
-S = QNShuxg_init(2*params.Nx+1:3*params.Nx);
-h = QNShuxg_init(3*params.Nx+1:4*params.Nx);
-u = QNShuxg_init(4*params.Nx+1:5*params.Nx);
-xg = QNShuxg_init(5*params.Nx+1);
-hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
 
 %% Now for evolution 
 Qs = nan.*ones(params.Nt,params.Nx);
@@ -122,8 +140,8 @@ params.h_old = h;
 params.xg_old =xg;
 params.S_old = S;
 params.transient = 1;
-params.accum = 0.8/params.year;
-params.Q_in = 1000/params.Q0;
+params.accum = 1./params.year;
+params.Q_in = 500/params.Q0;
 
 for t=1:params.Nt
     flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
@@ -156,6 +174,10 @@ subplot(3,1,1);surface(ts,params.sigma_h,Q_dim',EdgeColor='None');colorbar;xlabe
 subplot(3,1,2);surface(ts,params.sigma_h,N_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
 subplot(3,1,3);surface(ts,params.sigma_h,S_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
 
+%% Saving values
+
+fname = strcat('results/run_',num2str(params.Q_in*params.Q0),'_full.mat');
+save(fname);
 %% Functions
 function F = combined_hydro_ice_eqns(QNShuxg,params)
     % unpack variables
