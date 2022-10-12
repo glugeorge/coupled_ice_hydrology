@@ -2,6 +2,9 @@ close all
 clear all
 clc
 
+%% If load initial conditions
+prescribe = 0;
+load init_cond.mat;
 %% Bed parameters
 params.b0 = -100;           %bed topo at x=0
 params.bx = -1e-3;          %linear bed slope
@@ -11,13 +14,13 @@ params.sill_max = 2100e3;   %sill max x position
 params.sill_slope = 1e-3;   %slope of sill
 
 %% Physical parameters
-params.A = 4.227e-25; % From Alex Robel's code
+params.A = 4.337e-25; % From Alex Robel's code
 params.n = 3;
 params.rho_i = 917;
 params.rho_w = 1028;
 params.g = 9.81;
-params.C = 0.84*0.5; % From Hewitt and Fowler, 2008
-params.As = 2*2.4e-24/(0.5*params.C^params.n); % Calculated 
+params.C = 0.1; % From Hewitt and Fowler, 2008
+params.As = 2.26e-21; % Calculated 
 params.p = 1/3; % From Hewitt's Karthaus slides 
 params.q = 1/3; % From Hewitt's Karthaus slides
 params.f = 0.07; % From Kingslake thesis
@@ -66,49 +69,63 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
 params.Nt = 100;                    %number of time steps
-params.end_year = 10e3;
+params.end_year = 10;
 
 params.dt = params.end_year*params.year/params.Nt;
 
 %% Determine at what points there is coupling
-% set off for initial condition
 % 1 - coupling on, 0 - coupling off
 params.hydro_u_from_ice_u = 1;
 params.hydro_psi_from_ice_h = 1;
 params.ice_N_from_hydro = 1;
 
 %% Initial "steady state" conditions
-Q = 0.001*ones(params.Nx,1);
-N = ones(params.Nx,1);
-S = 5/params.S0*ones(params.Nx,1); 
-params.S_old = S;
-params.M = 5*10^-4/params.M0; 
-params.N_terminus = 0;
-params.accum = 1/params.year;
-xg = 100e3/params.x0;
-hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
-h = 1 - (1-hf).*params.sigma;
-u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3;
-params.Q_in = 10/params.Q0;
+if prescribe
+    Q = 10*ones(params.Nx,1)./params.Q0;
+    N = 100000.*ones(params.Nx,1)./params.N0;
+    S = 5/params.S0*ones(params.Nx,1);
+    QNShuxg_init = [Q;N;S;h;u;xg];
+    params.Q_in = 10/params.Q0;
+    params.h_old = h;
+    params.xg_old = xg;
+    params.S_old = S;
+    params.M = 5*10^-4/params.M0; 
+    params.N_terminus = 0;
+    params.accum = 1/params.year;
+else
+    Q = 0.001*ones(params.Nx,1);
+    N = ones(params.Nx,1);
+    S = 5/params.S0*ones(params.Nx,1); 
+    params.S_old = S;
+    params.M = 5*10^-4/params.M0; 
+    params.N_terminus = 0;
+    params.accum = 1/params.year;
+    xg = 100e3/params.x0;
+    hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
+    h = 1 - (1-hf).*params.sigma;
+    u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3;
+    params.Q_in = 10/params.Q0;
+    
+    params.h_old = h;
+    params.xg_old = xg;
+    
+    sig_old = params.sigma;
+    sige_old = params.sigma_elem;
+    QNShuxg0 = [Q;N;S;h;u;xg];
+    options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
+    flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
+    
+    [QNShuxg_init,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
+    
+    Q = QNShuxg_init(1:params.Nx);
+    N = QNShuxg_init(params.Nx+1:2*params.Nx);
+    S = QNShuxg_init(2*params.Nx+1:3*params.Nx);
+    h = QNShuxg_init(3*params.Nx+1:4*params.Nx);
+    u = QNShuxg_init(4*params.Nx+1:5*params.Nx);
+    xg = QNShuxg_init(5*params.Nx+1);
+    hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
+end
 
-params.h_old = h;
-params.xg_old = xg;
-
-sig_old = params.sigma;
-sige_old = params.sigma_elem;
-QNShuxg0 = [Q;N;S;h;u;xg];
-options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
-flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
-
-[QNShuxg_init,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
-
-Q = QNShuxg_init(1:params.Nx);
-N = QNShuxg_init(params.Nx+1:2*params.Nx);
-S = QNShuxg_init(2*params.Nx+1:3*params.Nx);
-h = QNShuxg_init(3*params.Nx+1:4*params.Nx);
-u = QNShuxg_init(4*params.Nx+1:5*params.Nx);
-xg = QNShuxg_init(5*params.Nx+1);
-hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
 
 %% Now for evolution 
 Qs = nan.*ones(params.Nt,params.Nx);
@@ -122,9 +139,9 @@ QNShuxg_t = QNShuxg_init;
 params.h_old = h;
 params.xg_old =xg;
 params.S_old = S;
-params.transient = 1;
-params.accum = 0.1/params.year;
-params.Q_in = 10.9/params.Q0;
+%params.transient = 1;
+params.accum = 1./params.year;
+params.Q_in = 1/params.Q0;
 
 for t=1:params.Nt
     flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
@@ -157,32 +174,10 @@ subplot(3,1,1);surface(ts,params.sigma_h,Q_dim',EdgeColor='None');colorbar;xlabe
 subplot(3,1,2);surface(ts,params.sigma_h,N_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
 subplot(3,1,3);surface(ts,params.sigma_h,S_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
 
-figure('Name','Evolution of Drainage');
-subplot(3,1,1);
-plot(ts,N_dim(:,1),'DisplayName','Channel Entrance');
-hold on;
-plot(ts,N_dim(:,end),'--','DisplayName','Channel Exit');
-xlabel('time, \emph{t} (years)','Interpreter','latex');
-ylabel('Effective Pressure, \emph{N} (Pa)','Interpreter','latex');
-title('Effective Pressure over time');
+%% Saving values
 
-subplot(3,1,2);
-plot(ts,Q_dim(:,1),'DisplayName','Channel Entrance');
-hold on;
-plot(ts,Q_dim(:,end),'DisplayName','Channel Exit');
-xlabel('time, \emph{t} (years)','Interpreter','latex');
-ylabel('channel flow rate, \emph{Q} $(m^{3} s^{-1})$','Interpreter','latex');
-title('Flow over time');
-legend('Location','northwest');
-
-subplot(3,1,3);
-plot(ts,S_dim(:,1),'-o','DisplayName','Channel Entrance');
-hold on;
-plot(ts,S_dim(:,end),'-o','DisplayName','Channel Exit');
-xlabel('time, \emph{t} (years)','Interpreter','latex');
-ylabel('channel cross-sectional area, \emph{S} $(m^2)$','Interpreter','latex');
-title('Channel area over time');
-legend('Location','northwest');
+fname = strcat('results/run_',num2str(params.Q_in*params.Q0),'_full.mat');
+save(fname);
 %% Functions
 function F = combined_hydro_ice_eqns(QNShuxg,params)
     % unpack variables
@@ -199,6 +194,7 @@ function F = combined_hydro_ice_eqns(QNShuxg,params)
 
     %grid params unpack
     dt = params.dt/params.t0;
+    dth= params.dt/params.th0;
     ds = params.dsigma;
     Nx = params.Nx;
     N1 = params.N1;
@@ -238,7 +234,7 @@ function F = combined_hydro_ice_eqns(QNShuxg,params)
     if params.ice_N_from_hydro
         N_ice = interp1(params.sigma_h,N,sigma);
     else
-        N_ice = 1000*ones(size(h_old))./params.N0;
+        N_ice = 100000*ones(size(h_old))./params.N0;
     end
 
     % Q
@@ -261,14 +257,17 @@ function F = combined_hydro_ice_eqns(QNShuxg,params)
 
     % S
     fs(1) = abs(Q(1)).^3./(S(1).^(8/3)) - ... 
-                        S(1).*N(1).^3 - ...
-                        params.beta.*u_ice_interp(1).*(S(2)-S(1))./(xg*params.dsigma_h(1)); % one sided difference
+                        S(1).*N(1).^3 + ...
+                        (0.*params.sigma_h(1)*(xg-xg_old)/dth - params.beta.*u_ice_interp(1)).*(S(2)-S(1))./(xg*params.dsigma_h(1)) - ...
+                        0.*(S(1)-params.S_old(1))./dth; % one sided difference
     fs(2:Nx-1)= abs(Q(2:Nx-1)).^3./(S(2:Nx-1).^(8/3)) - ... 
-                        S(2:Nx-1).*N(2:Nx-1).^3 - ...
-                        params.beta.*u_ice_interp(2:Nx-1).*(S(3:Nx)-S(1:Nx-2))./(2*xg*params.dsigma_h(2:Nx-1)); 
+                        S(2:Nx-1).*N(2:Nx-1).^3 + ...
+                        (0.*params.sigma_h(2:Nx-1).*(xg-xg_old)./dth - params.beta.*u_ice_interp(2:Nx-1)).*(S(3:Nx)-S(1:Nx-2))./(2*xg*params.dsigma_h(2:Nx-1)) - ...
+                        0.*(S(2:Nx-1)-params.S_old(2:Nx-1))./dth; 
     fs(Nx)= abs(Q(Nx)).^3./(S(Nx).^(8/3)) - ... 
-                        S(Nx).*N(Nx).^3 - ...
-                        params.beta.*u_ice_interp(Nx).*(S(Nx)-S(Nx-1))./(xg*params.dsigma_h(Nx-1)); % one sided difference
+                        S(Nx).*N(Nx).^3 + ...
+                        (0.*params.sigma_h(Nx).*(xg-xg_old)./dth - params.beta.*u_ice_interp(Nx)).*(S(Nx)-S(Nx-1))./(xg*params.dsigma_h(Nx-1)) - ...
+                        0.*(S(Nx)-params.S_old(Nx))./dth; % one sided difference
 
     % ice sheet equations
     Fh(1)      = ss.*(h(1)-h_old(1))./dt + (2.*h(1).*u(1))./(ds(1).*xg) - a;

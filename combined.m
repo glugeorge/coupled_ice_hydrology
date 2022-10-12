@@ -2,9 +2,6 @@ close all
 clear all
 clc
 
-%% If load initial conditions
-prescribe = 0;
-load init_cond.mat;
 %% Bed parameters
 params.b0 = -100;           %bed topo at x=0
 params.bx = -1e-3;          %linear bed slope
@@ -14,13 +11,13 @@ params.sill_max = 2100e3;   %sill max x position
 params.sill_slope = 1e-3;   %slope of sill
 
 %% Physical parameters
-params.A = 4.227e-25; % From Alex Robel's code
+params.A = 4.337e-25; 
 params.n = 3;
 params.rho_i = 917;
 params.rho_w = 1028;
 params.g = 9.81;
-params.C = 0.84*0.5; % From Hewitt and Fowler, 2008
-params.As = 2*2.4e-24/(0.5*params.C^params.n); % Calculated 
+params.C = 0.2; % 
+params.As = 2.26e-21; % Calculated 
 params.p = 1/3; % From Hewitt's Karthaus slides 
 params.q = 1/3; % From Hewitt's Karthaus slides
 params.f = 0.07; % From Kingslake thesis
@@ -68,7 +65,7 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
-params.Nt = 500;                    %number of time steps
+params.Nt = 100;                    %number of time steps
 params.end_year = 5000;
 
 params.dt = params.end_year*params.year/params.Nt;
@@ -80,52 +77,46 @@ params.hydro_psi_from_ice_h = 1;
 params.ice_N_from_hydro = 1;
 
 %% Initial "steady state" conditions
-if prescribe
-    Q = 10*ones(params.Nx,1)./params.Q0;
-    N = 100000.*ones(params.Nx,1)./params.N0;
-    S = 5/params.S0*ones(params.Nx,1);
-    QNShuxg_init = [Q;N;S;h;u;xg];
-    params.Q_in = 10/params.Q0;
-    params.h_old = h;
-    params.xg_old = xg;
-    params.S_old = S;
-    params.M = 5*10^-4/params.M0; 
-    params.N_terminus = 0;
-    params.accum = 1/params.year;
-else
-    Q = 0.001*ones(params.Nx,1);
-    N = ones(params.Nx,1);
-    S = 5/params.S0*ones(params.Nx,1); 
-    params.S_old = S;
-    params.M = 5*10^-4/params.M0; 
-    params.N_terminus = 0;
-    params.accum = 1/params.year;
-    xg = 100e3/params.x0;
-    hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
-    h = 1 - (1-hf).*params.sigma;
-    u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3;
-    params.Q_in = 10/params.Q0;
-    
-    params.h_old = h;
-    params.xg_old = xg;
-    
-    sig_old = params.sigma;
-    sige_old = params.sigma_elem;
-    QNShuxg0 = [Q;N;S;h;u;xg];
-    options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
-    flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
-    
-    [QNShuxg_init,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
-    
-    Q = QNShuxg_init(1:params.Nx);
-    N = QNShuxg_init(params.Nx+1:2*params.Nx);
-    S = QNShuxg_init(2*params.Nx+1:3*params.Nx);
-    h = QNShuxg_init(3*params.Nx+1:4*params.Nx);
-    u = QNShuxg_init(4*params.Nx+1:5*params.Nx);
-    xg = QNShuxg_init(5*params.Nx+1);
-    hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
-end
+Q = 0.001*ones(params.Nx,1);
+N = ones(params.Nx,1);
+S = 5/params.S0*ones(params.Nx,1); 
+params.S_old = S;
+params.M = 5*10^-4/params.M0; 
+params.N_terminus = 0;
+params.accum = 1/params.year;
+xg = 100e3/params.x0;
+hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
+h = 1 - (1-hf).*params.sigma;
+u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3;
+params.Q_in = 10/params.Q0;
 
+params.h_old = h;
+params.xg_old = xg;
+
+sig_old = params.sigma;
+sige_old = params.sigma_elem;
+QNShuxg0 = [Q;N;S;h;u;xg];
+options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
+flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
+
+[QNShuxg_init,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
+
+Q = QNShuxg_init(1:params.Nx);
+N = QNShuxg_init(params.Nx+1:2*params.Nx);
+S = QNShuxg_init(2*params.Nx+1:3*params.Nx);
+h = QNShuxg_init(3*params.Nx+1:4*params.Nx);
+u = QNShuxg_init(4*params.Nx+1:5*params.Nx);
+xg = QNShuxg_init(5*params.Nx+1);
+hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
+
+%% Steady state solution
+params.accum = 1./params.year;
+params.Q_in = 10/params.Q0;
+params.A = 2.9e-25; 
+params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
+flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
+[QNShuxg_final,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
+xg_f = QNShuxg_final(5*params.Nx+1);
 
 %% Now for evolution 
 Qs = nan.*ones(params.Nt,params.Nx);
@@ -136,14 +127,19 @@ us = nan.*ones(params.Nt,params.Nx);
 xgs = nan.*ones(1,params.Nt);
 QNShuxg_t = QNShuxg_init;
 
+Qs(1,:) = QNShuxg_t(1:params.Nx);
+Ns(1,:) = QNShuxg_t(params.Nx+1:2*params.Nx);
+Ss(1,:) = QNShuxg_t(2*params.Nx+1:3*params.Nx);
+hs(1,:) = QNShuxg_t(3*params.Nx+1:4*params.Nx);
+us(1,:) = QNShuxg_t(4*params.Nx+1:5*params.Nx);
+xgs(1) = QNShuxg_t(5*params.Nx+1);
+
 params.h_old = h;
 params.xg_old =xg;
 params.S_old = S;
 params.transient = 1;
-params.accum = 1./params.year;
-params.Q_in = 500/params.Q0;
-
-for t=1:params.Nt
+time_to_ss = 0; % to 99 percent
+for t=2:params.Nt
     flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
     [QNShuxg_t,F,exitflag,output,JAC] = fsolve(flf,QNShuxg_t,options);
     
@@ -157,6 +153,9 @@ for t=1:params.Nt
     Qs(t,:) = QNShuxg_t(1:params.Nx);
     Ns(t,:) = QNShuxg_t(params.Nx+1:2*params.Nx);
     Ss(t,:) = QNShuxg_t(2*params.Nx+1:3*params.Nx);
+    if abs(xg_f - xgs(t)) < 0.001*xg_f && time_to_ss == 0
+        time_to_ss = (t-1)*params.dt/params.year;
+    end
 end
 
 %% Plotting
@@ -176,7 +175,7 @@ subplot(3,1,3);surface(ts,params.sigma_h,S_dim',EdgeColor='None');colorbar;xlabe
 
 %% Saving values
 
-fname = strcat('results/run_',num2str(params.Q_in*params.Q0),'_full.mat');
+fname = strcat('run_',num2str(params.A*1e25),'_combined.mat');
 save(fname);
 %% Functions
 function F = combined_hydro_ice_eqns(QNShuxg,params)

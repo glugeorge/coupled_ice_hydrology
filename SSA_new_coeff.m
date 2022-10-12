@@ -1,7 +1,11 @@
 clear all
 close all
 clc
-
+%% For using same initial condition as coupled 
+load coupled_init_cond.mat;
+params.N_scaled = N*params.N0;
+h_scaled = h*params.h0;
+u_scaled = u*params.u0;
 %% Bed parameters
 params.b0 = -100;           %bed topo at x=0
 params.bx = -1e-3;          %linear bed slope
@@ -11,13 +15,13 @@ params.sill_max = 2100e3;   %sill max x position
 params.sill_slope = 1e-3;   %slope of sill
 
 %% Physical parameters
-params.A = 4.227e-25; % From Alex Robel's code
+params.A = 4.337e-25; % From Alex Robel's code
 params.n = 3;
 params.rho_i = 917;
 params.rho_w = 1028;
 params.g = 9.81;
-params.C = 0.84*0.5; % From Hewitt and Fowler, 2008
-params.As = 2*2.4e-24/(0.5*params.C^params.n); % Calculated 
+params.C = 0.2; % 
+params.As = 2.26e-21; % Calculated 
 params.p = 1/3; % From Hewitt's Karthaus slides 
 params.q = 1/3; % From Hewitt's Karthaus slides
 params.f = 0.07; % From Kingslake thesis
@@ -50,7 +54,7 @@ params.r = params.rho_i/params.rho_w;
 params.transient = 0;   %0 if solving for steady-state, 1 if solving for transient evolution
 
 %% Grid parameters
-params.tfinal = 10e3.*params.year;   %length of transient simulation
+params.tfinal = 5e3.*params.year;   %length of transient simulation
 params.Nt = 100;                    %number of time steps
 params.dt = params.tfinal/params.Nt;%time step length
 params.Nx = 200;                    %number of grid points
@@ -64,19 +68,27 @@ params.sigma = [sigma1, sigma2(2:end)]';    %grid points on velocity (includes G
 params.sigma_elem = [0;(params.sigma(1:params.Nx-1) + params.sigma(2:params.Nx))./2]; %grid points on thickness (includes divide, not GL)
 params.dsigma = diff(params.sigma); %grid spacing
 
-%% Solve for steady-state initial conditions
-params.accum = 1/params.year;
-xg = 10e3/params.x0;
-hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
-h = 1 - (1-hf).*params.sigma;
-u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3;
 
+%% Test to make sure flowline equations make sense
+params.accum = 1/params.year;
+%xg = 100e3/params.x0;
+%hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
+h = h_scaled/params.h0;%1 - (1-hf).*params.sigma;
+u = u_scaled/params.u0;%0.3*(params.sigma_elem.^(1/3)) + 1e-3;
 params.h_old = h;
 params.xg_old = xg;
 
 sig_old = params.sigma;
 sige_old = params.sigma_elem;
 huxg0 = [h;u;xg];
+
+res = flowline_eqns(huxg0,params);
+h_diff = res(1:params.Nx);
+u_diff = res(params.Nx+1:2*params.Nx);
+xg_diff = res(end);
+
+%% Solve for steady-state initial conditions
+
 options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
 flf = @(huxg) flowline_eqns(huxg,params);
 
@@ -87,7 +99,14 @@ u = huxg_init(params.Nx+1:2*params.Nx);
 xg = huxg_init(end);
 hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
 
-save init_cond.mat
+%% Calculate steady state solution
+params.accum = 1/params.year;
+params.A = 2.9e-25; 
+params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
+flf = @(huxg) flowline_eqns(huxg,params);
+[huxg_final,F,exitflag,output,JAC] = fsolve(flf,huxg0,options);
+xg_f = huxg_final(end);
+
 %% Calculate transient GL evolution over bedrock peak
 xgs = nan.*ones(1,params.Nt);
 hs = nan.*ones(params.Nt,params.Nx);
@@ -95,10 +114,12 @@ us = nan.*ones(params.Nt,params.Nx);
 huxg_t = huxg_init;
 params.h_old = huxg_t(1:params.Nx);
 params.xg_old = huxg_t(end);
-
+hs(1,:) = huxg_t(1:params.Nx);
+us(1,:) = huxg_t(params.Nx+1:2*params.Nx);
+xgs(1) = huxg_t(end);
 params.transient = 1;
-params.accum = 0.8/params.year;
-for t=1:params.Nt
+time_to_ss = 0;
+for t=2:params.Nt
     flf = @(huxg) flowline_eqns(huxg,params);
     [huxg_t,F,exitflag,output,JAC] = fsolve(flf,huxg_t,options);
     
@@ -108,11 +129,14 @@ for t=1:params.Nt
     xgs(t) = huxg_t(end);
     hs(t,:) = huxg_t(1:params.Nx)';
     us(t,:) = huxg_t(params.Nx+1:end-1)';
+    if abs(xg_f - xgs(t)) < 0.001*xg_f && time_to_ss == 0
+        time_to_ss = (t-1)*params.dt/params.year;
+    end
 end
 
 
 %% Plot transient solution
-figure(2);
+figure();
 ts = linspace(0,params.tfinal./params.year,params.Nt);
 subplot(3,1,1);plot(ts,xgs.*params.x0./1e3,'linewidth',3);xlabel('time (yr)');ylabel('x_g')
 %subplot(3,1,2);contourf(ts,params.sigma_elem,hs'.*params.hscale);colorbar;xlabel('time (yr)');ylabel('sigma');title('thickness (m)');set(gca,'Ydir','Reverse')
@@ -121,11 +145,16 @@ subplot(3,1,3);contourf(ts,params.sigma,us'.*params.u0.*params.year);colorbar;xl
 subplot(3,1,2);contourf(ts,params.sigma_elem,hs'.*params.h0);colorbar;xlabel('time (yr)');ylabel('sigma');title('thickness (m)');set(gca,'Ydir','Reverse')
 %subplot(3,1,3);surface(ts,params.sigma,us'.*params.uscale.*params.year,EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('sigma');title('velocity (m/yr)');set(gca,'Ydir','Reverse')
 %%
-N = 100000;
-u_new = us'.*params.u0;
-tau = params.C.*N.*(u_new./(u_new+params.As*(params.C*N)^params.n)); 
-figure(3)
-contourf(ts,params.sigma,tau);colorbar;xlabel('time (yr)');ylabel('sigma');title('shear stress (Pa)');set(gca,'Ydir','Reverse');
+% N = 100000;
+% u_new = us'.*params.u0;
+% tau = params.C.*N.*(u_new./(u_new+params.As*(params.C*N)^params.n)); 
+% figure(3)
+% contourf(ts,params.sigma,tau);colorbar;xlabel('time (yr)');ylabel('sigma');title('shear stress (Pa)');set(gca,'Ydir','Reverse');
+
+%% Save results
+fname = strcat('run_',num2str(params.A*1e25),'_constN.mat');
+save(fname);
+
 %% Implicit system of equations function (using discretization scheme from Schoof 2007)
 function F = flowline_eqns(huxg,params)
     
@@ -158,7 +187,7 @@ function F = flowline_eqns(huxg,params)
     %previous time step unpack
     h_old = params.h_old;
     xg_old = params.xg_old;
-    N = 100000*ones(size(h_old))./params.N0;
+    N = interp1(params.sigma_h,params.N_scaled./params.N0,sigma);
     
     %thickness - stays same
     Fh(1)      = ss.*(h(1)-h_old(1))./dt + (2.*h(1).*u(1))./(ds(1).*xg) - a;

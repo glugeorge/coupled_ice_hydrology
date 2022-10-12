@@ -4,15 +4,15 @@ clear all;
 % I think this would be the initial model to look at as a baseline
 
 % Load in determined steady state h, u 
-load init_cond.mat
+load SSA_simple_result.mat
 
 
 h_grid = params.sigma_elem*xg; % nondimensionalized xgrid for h
 u_grid = params.sigma*xg; % nondimensionalized xgrid for u
 params.xg = xg;
-params.Nt = 1000;                    %number of time steps
+params.Nt = 500;                    %number of time steps
 params.year = 3600*24*365;  %number of seconds in a year
-params.dt = 0.05;
+params.dt = 0.01;
 params.Nx = 200;                    %number of grid points
 %params.N1 = 100;                    %number of grid points in coarse domain
 params.sigGZ = 1; % 0.97;                %extent of coarse grid (where GL is at sigma=1)
@@ -23,17 +23,17 @@ params.sigma = linspace(0,1,params.Nx)';%[linspace(params.sigGZ/(params.Nx+0.5),
 params.dsigma = diff(params.sigma); %grid spacing
 
 % interpolate h,u to same grid
-h_interp = interp1(h_grid,h,params.sigma*xg,'linear','extrap');
-u_interp = interp1(u_grid,u,params.sigma*xg,'linear','extrap');
+h_interp = interp1(h_grid,h.*params.hscale,params.sigma*xg,'linear','extrap');
+u_interp = interp1(u_grid,u.*params.uscale,params.sigma*xg,'linear','extrap');
 % scale constants
 % Define given constants
-A = 4.227e-25; % From Alex Robel's code
+A = 4.337e-25; % From Alex Robel's code
 n = 3;
 rho_i = 917;
 rho_w = 1028;
 g = 9.81;
-C = 0.84*0.5; % From Hewitt and Fowler, 2008
-As = 2*2.4e-24/(0.5*C^n); % Calculated 
+C = 3.2; % From Hewitt and Fowler, 2008
+As = 2.26e-21; % Calculated 
 p = 1/3; % From Hewitt's Karthaus slides 
 q = 1/3; % From Hewitt's Karthaus slides
 f = 0.07; % From Kingslake thesis
@@ -68,10 +68,10 @@ Q = 0.001*ones(params.Nx,1);
 N = ones(params.Nx,1);
 S = 5/params.S0*ones(params.Nx,1); 
 params.S_old = S;
-params.u = u_interp;
+params.u = u_interp./params.u0;
 % define psi with realistic h
 phi_b = 0.001; % slope
-p = rho_i*g*h_interp*params.h0;
+p = rho_i*g*h_interp;
 params.psi = (rho_w*g*sin(phi_b)-gradient(p)./gradient(params.sigma.*params.x0.*xg))./params.psi0;
 
 params.M = 5*10^-4/params.M0; 
@@ -83,6 +83,9 @@ QNS = [Q; N; S];
 Qs = nan.*ones(params.Nt,params.Nx);
 Ns = nan.*ones(params.Nt,params.Nx);
 Ss = nan.*ones(params.Nt,params.Nx);
+Qs(1,:)=Q;
+Ns(1,:)=N;
+Ss(1,:)=S;
 
 options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
 
