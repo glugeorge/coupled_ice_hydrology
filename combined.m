@@ -11,15 +11,13 @@ params.sill_max = 2100e3;   %sill max x position
 params.sill_slope = 1e-3;   %slope of sill
 
 %% Physical parameters
-params.A = 4.337e-25; 
+params.A = 2.9e-25; 
 params.n = 3;
 params.rho_i = 917;
 params.rho_w = 1028;
 params.g = 9.81;
-params.C = 0.2; % 
+params.C = 0.05; % base 0.2
 params.As = 2.26e-21; % Calculated 
-params.p = 1/3; % From Hewitt's Karthaus slides 
-params.q = 1/3; % From Hewitt's Karthaus slides
 params.f = 0.07; % From Kingslake thesis
 params.K0 = 10^-24; % From Kingslake thesis  
 params.L = 3.3e5; % Kingslake thesis
@@ -50,8 +48,8 @@ params.r = params.rho_i/params.rho_w;
 params.transient = 0;
 
 %% Grid parameters - ice sheet
-params.Nx = 200;                    %number of grid points
-params.N1 = 100;                    %number of grid points in coarse domain
+params.Nx = 200;                    %number of grid points - 200
+params.N1 = 100;                    %number of grid points in coarse domain - 100
 params.sigGZ = 0.97;                %extent of coarse grid (where GL is at sigma=1)
 sigma1=linspace(params.sigGZ/(params.N1+0.5), params.sigGZ, params.N1);
 sigma2=linspace(params.sigGZ, 1, params.Nx-params.N1+1);
@@ -65,8 +63,8 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
-params.Nt = 100;                    %number of time steps
-params.end_year = 5000;
+params.Nt = 25;                    %number of time steps - normally 150
+params.end_year = 7500; %normally 7500
 
 params.dt = params.end_year*params.year/params.Nt;
 
@@ -83,11 +81,11 @@ S = 5/params.S0*ones(params.Nx,1);
 params.S_old = S;
 params.M = 5*10^-4/params.M0; 
 params.N_terminus = 0;
-params.accum = 1/params.year;
+params.accum = 1./params.year;
 xg = 100e3/params.x0;
 hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
 h = 1 - (1-hf).*params.sigma;
-u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3;
+u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
 params.Q_in = 10/params.Q0;
 
 params.h_old = h;
@@ -109,10 +107,10 @@ u = QNShuxg_init(4*params.Nx+1:5*params.Nx);
 xg = QNShuxg_init(5*params.Nx+1);
 hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
 
-%% Steady state solution
+%% Final steady state solution
 params.accum = 1./params.year;
 params.Q_in = 10/params.Q0;
-params.A = 2.9e-25; 
+params.A = 1.7e-25; 
 params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
 flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
 [QNShuxg_final,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
@@ -174,9 +172,21 @@ subplot(3,1,2);surface(ts,params.sigma_h,N_dim',EdgeColor='None');colorbar;xlabe
 subplot(3,1,3);surface(ts,params.sigma_h,S_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
 
 %% Saving values
+results.params = params;
+results.init_cond = QNShuxg_init;
+results.steady_state = QNShuxg_final;
+results.xgs = xgs;
+results.ts = ts;
+results.hs = hs';
+results.us = us';
+results.Qs = Qs';
+results.Ns = Ns';
+results.Ss = Ss';
+results.time_to_ss = time_to_ss; 
 
-fname = strcat('run_',num2str(params.A*1e25),'_combined.mat');
-save(fname);
+%fname = strcat('base_run',num2str(params.A*1e25),'_c.mat');
+fname = strcat('C_',num2str(params.C),'_A_',num2str(params.A*1e25),'_c.mat');
+save(fname,'results');
 %% Functions
 function F = combined_hydro_ice_eqns(QNShuxg,params)
     % unpack variables

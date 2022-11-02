@@ -3,7 +3,7 @@ close all
 clc
 %% For using same initial condition as coupled 
 
-filename = 'C_0.5_A_1.7_c.mat';
+filename = 'C_0.5_A_4.9_c.mat';
 load(filename);
 % case where N is the same as coupled, kept constant
 N = results.init_cond(results.params.Nx+1:2*results.params.Nx);
@@ -11,6 +11,7 @@ h = results.init_cond(3*results.params.Nx+1:4*results.params.Nx);
 u = results.init_cond(4*results.params.Nx+1:5*results.params.Nx);
 xg = results.init_cond(5*results.params.Nx+1);
 params.sigma_h = results.params.sigma_h;
+params.fixed_N_grid = params.sigma_h*xg; 
 params.N_scaled = N*results.params.N0;
 h_scaled = h*results.params.h0;
 u_scaled = u*results.params.u0;
@@ -65,7 +66,7 @@ params.r = params.rho_i/params.rho_w;
 params.transient = 0;   %0 if solving for steady-state, 1 if solving for transient evolution
 
 %% Grid parameters
-params.tfinal = 7.5e3.*params.year;   %length of transient simulation
+params.tfinal = 0.75e2.*params.year;   %length of transient simulation
 params.Nt = 150;                    %number of time steps
 params.dt = params.tfinal/params.Nt;%time step length
 params.Nx = 200;                    %number of grid points
@@ -199,7 +200,7 @@ function F = flowline_eqns(huxg,params)
     %previous time step unpack
     h_old = params.h_old;
     xg_old = params.xg_old;
-    N = interp1(params.sigma_h,params.N_scaled./params.N0,sigma);
+    N = interp1(params.fixed_N_grid,params.N_scaled./params.N0,sigma*xg);
     
     % If using variable C
     %C_adjust = params.C_new./params.C;

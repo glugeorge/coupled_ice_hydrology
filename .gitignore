@@ -3,3 +3,5 @@
 .DS_Store
 results/*
 utils_deprecated/*
+.DS_Store
+stretching_N/*
