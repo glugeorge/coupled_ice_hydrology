@@ -16,7 +16,7 @@ params.n = 3;
 params.rho_i = 917;
 params.rho_w = 1028;
 params.g = 9.81;
-params.C = 0.05; % base 0.2
+params.C = 0.2; % base 0.2
 params.As = 2.26e-21; % Calculated 
 params.f = 0.07; % From Kingslake thesis
 params.K0 = 10^-24; % From Kingslake thesis  
@@ -63,7 +63,7 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
-params.Nt = 25;                    %number of time steps - normally 150
+params.Nt = 150;                    %number of time steps - normally 150
 params.end_year = 7500; %normally 7500
 
 params.dt = params.end_year*params.year/params.Nt;
@@ -185,8 +185,8 @@ results.Ss = Ss';
 results.time_to_ss = time_to_ss; 
 
 %fname = strcat('base_run',num2str(params.A*1e25),'_c.mat');
-fname = strcat('C_',num2str(params.C),'_A_',num2str(params.A*1e25),'_c.mat');
-save(fname,'results');
+%fname = strcat('C_',num2str(params.C),'_A_',num2str(params.A*1e25),'_c.mat');
+%save(fname,'results');
 %% Functions
 function F = combined_hydro_ice_eqns(QNShuxg,params)
     % unpack variables

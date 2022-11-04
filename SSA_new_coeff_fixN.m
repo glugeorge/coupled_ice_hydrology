@@ -3,7 +3,7 @@ close all
 clc
 %% For using same initial condition as coupled 
 
-filename = 'C_0.5_A_4.9_c.mat';
+filename = 'C_0.1_A_4.9_c.mat';
 load(filename);
 % case where N is the same as coupled, kept constant
 N = results.init_cond(results.params.Nx+1:2*results.params.Nx);
@@ -66,7 +66,7 @@ params.r = params.rho_i/params.rho_w;
 params.transient = 0;   %0 if solving for steady-state, 1 if solving for transient evolution
 
 %% Grid parameters
-params.tfinal = 0.75e2.*params.year;   %length of transient simulation
+params.tfinal = 7.5e2.*params.year;   %length of transient simulation
 params.Nt = 150;                    %number of time steps
 params.dt = params.tfinal/params.Nt;%time step length
 params.Nx = 200;                    %number of grid points
@@ -155,6 +155,15 @@ subplot(3,1,3);contourf(ts,params.sigma,us'.*params.u0.*params.year);colorbar;xl
 
 subplot(3,1,2);contourf(ts,params.sigma_elem,hs'.*params.h0);colorbar;xlabel('time (yr)');ylabel('sigma');title('thickness (m)');set(gca,'Ydir','Reverse')
 %subplot(3,1,3);surface(ts,params.sigma,us'.*params.uscale.*params.year,EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('sigma');title('velocity (m/yr)');set(gca,'Ydir','Reverse')
+%% Plot evolution of N
+figure();
+hold on;
+colors = ['r','y','g','b','k'];
+for i=1:5
+    plot(params.sigma*xgs(i)*params.x0/1000,interp1(params.fixed_N_grid,params.N_scaled,params.sigma*xgs(i)),"Color",colors(i))
+    plot(params.sigma(end)*xgs(i)*params.x0/1000,interp1(params.fixed_N_grid,params.N_scaled,params.sigma(end)*xgs(i)),'o',"Color",colors(i))
+
+end
 
 %% Save results
 results_constN.params = params;
