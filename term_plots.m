@@ -31,7 +31,7 @@ function plot_terms(QNShuxg,params,I_F)
     plot(x_grid_ice./1000,dhu_dx,'--','DisplayName', strcat(I_F,': ','$\frac{\partial (hu)}{\partial x}$'));
     legend('Interpreter','latex');
     xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
-    
+    title('$\frac{\partial h_g}{\partial t} + \frac{\partial (h_gu)}{\partial x}= a$','Interpreter','latex')
     %% Plot 2: ice momentum conservation
     N_interp = interp1(sigma_h,N,sigma_elem,"linear","extrap");
     shear_stress = params.C.*N_interp(2:end)*params.N0.*(u_interp(2:end)./(u_interp(2:end)+params.As*(params.C*N_interp(2:end)*params.N0).^params.n)).^(1/params.n); 
@@ -49,7 +49,8 @@ function plot_terms(QNShuxg,params,I_F)
     plot(x_grid_ice(2:end)./1000,shear_and_driving,'DisplayName', strcat(I_F,': ','Shear + driving stress'));
     legend;
     xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
-    
+    title('$\frac{\partial }{\partial x}\left[ 2\bar{A}^{-1/n}h_g\left|\frac{\partial u}{\partial x}\right|^{1/n-1}\frac{\partial u}{\partial x}\right] - CN(\frac{u}{u+A_sC^nN^n})^{1/n} -\rho_igh_g\frac{\partial (h_g-b)}{\partial x}=0$','Interpreter','latex')
+
     
     %% Plot 3: Channel Cross sectional area
     x_grid_hydro = sigma_h*xg*params.x0;
@@ -66,7 +67,7 @@ function plot_terms(QNShuxg,params,I_F)
     plot(x_grid_hydro./1000,KSN3 + u_advect,'x','DisplayName', strcat(I_F,': ','$K_0SN^3$ + Advection term'));
     legend('Interpreter','latex');
     xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
-    
+    title('$\frac{\partial S}{\partial t_h} = \frac{m}{\rho_i}-K_0SN^3 - u\frac{\partial S}{\partial x}$',Interpreter='latex')
     %% Plot 4: Conservation of mass
     dQdx = gradient(Q.*params.Q0)./gradient(x_grid_hydro);
     m_over_rho_w = m_over_rho_i.*params.rho_i./params.rho_w;
@@ -78,7 +79,7 @@ function plot_terms(QNShuxg,params,I_F)
     plot(x_grid_hydro./1000,M,'DisplayName', strcat(I_F,': ','Supply term'));
     legend('Interpreter','latex');
     xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
-    
+    title('$\frac{\partial S}{\partial t_h} + \frac{\partial Q}{\partial x} = \frac{m}{\rho_w}+M$','Interpreter','latex')
     %% Plot 5: Momentum conservation
     dNdx = gradient(N.*params.N0)./gradient(x_grid_hydro);
     f_Q_S = params.f*params.rho_w*params.g.*Q.*params.Q0.*abs(Q.*params.Q0)./(S.*params.S0).^(8/3);
@@ -93,7 +94,7 @@ function plot_terms(QNShuxg,params,I_F)
     
     legend('Interpreter','latex');
     xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
-    
+    title('$\psi+ \frac{\partial N}{\partial x} = f\rho_wg\frac{Q|Q|}{S^{8/3}}$','Interpreter','latex')
     %% Plot 6: Energy
     melt_term = m_over_rho_i.*params.rho_i*params.L;
     flow_through_potential = Q.*params.Q0 .*(psi + dNdx);
@@ -103,7 +104,7 @@ function plot_terms(QNShuxg,params,I_F)
     plot(x_grid_hydro./1000,flow_through_potential,'DisplayName', strcat(I_F,': ','Flow through potential'));
     legend('Interpreter','latex');
     xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
-
+    title('$mL = Q(\psi + \frac{\partial N}{\partial x})$','Interpreter','latex')
 end 
 
 
