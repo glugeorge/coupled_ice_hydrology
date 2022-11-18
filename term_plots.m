@@ -1,15 +1,21 @@
 close all; clear;
-load C_0.1_A_4.9_c.mat;
+load C_0.5_A_0.9_c_schoofBed.mat;
 QNShuxg = results.init_cond;
 params = results.params;
-plot_terms(QNShuxg,params,'Initial')
-QNShuxg = results.steady_state;
-params = results.params;
-plot_terms(QNShuxg,params,'Final')
+%plot_terms(QNShuxg,params,'Initial')
+for t=1:10:100
+    plot_vars_new(results,t,params);
+
+end
+%QNShuxg = results.steady_state;
+% params = results.params;
+% plot_terms(QNShuxg,params,'Final')
+
 function plot_terms(QNShuxg,params,I_F)
     sigma_elem = params.sigma_elem;
     sigma_h = params.sigma_h;
     sigma = params.sigma; 
+    N1 = params.N1;
     Q = QNShuxg(1:params.Nx);
     N = QNShuxg(params.Nx+1:2*params.Nx);
     S = QNShuxg(2*params.Nx+1:3*params.Nx);
@@ -18,13 +24,18 @@ function plot_terms(QNShuxg,params,I_F)
     xg = QNShuxg(5*params.Nx+1);
     
     % do ice plots on sigma_elem grid
-    x_grid_ice = sigma_elem*xg*params.x0;
+    x_grid_ice = sigma*xg*params.x0;
+    diff_ice = diff(x_grid_ice);
+    d_coarse = diff_ice(1);
+    d_fine = diff_ice(N1);
     figure();
     %% Plot 1 - ice mass conservation
     % Remember that since these are all in steady state, d/dt goes to zero
     accum = params.accum; % normalization done in flowline equations
-    u_interp = interp1(sigma,u.*params.u0,sigma_elem,"linear","extrap");
-    dhu_dx = gradient(u_interp.*h.*params.h0)./gradient(x_grid_ice);
+    h_interp = interp1(sigma_elem,h.*params.h0,sigma,"linear","extrap");
+    dhu_dx = zeros(size(x_grid_ice));
+    dhu_dx(1:N1-2) = diff((h_interp(1:N1-1).*u(1:N1-1)).*params.u0)./d_coarse;
+    dhu_dx(N1:end) = diff((h_interp(N1-1:end).*u(N1-1:end)).*params.u0)./d_fine;
     subplot(3,2,1);
     plot(x_grid_ice./1000,accum.*ones(size(x_grid_ice)),'DisplayName', strcat(I_F,': ','Accumulation'));
     hold on;
@@ -107,18 +118,62 @@ function plot_terms(QNShuxg,params,I_F)
     title('$mL = Q(\psi + \frac{\partial N}{\partial x})$','Interpreter','latex')
 end 
 
-
-%% Helper functions
-function b = bed(x,params)
-    xsill = x>params.sill_min & x<params.sill_max;
-    xdsill = x>=params.sill_max;
-    sill_length = params.sill_max-params.sill_min;
+function plot_vars(QNShuxg,params)
+    sigma_elem = params.sigma_elem;
+    sigma_h = params.sigma_h;
+    sigma = params.sigma; 
+    Q = QNShuxg(1:params.Nx);
+    N = QNShuxg(params.Nx+1:2*params.Nx);
+    S = QNShuxg(2*params.Nx+1:3*params.Nx);
+    h = QNShuxg(3*params.Nx+1:4*params.Nx);
+    u = QNShuxg(4*params.Nx+1:5*params.Nx);
+    xg = QNShuxg(5*params.Nx+1);
     
-    b = params.b0 + params.bx.*x;
+    figure(); 
+    ax1 = subplot(5,1,1); 
+    plot(sigma_h.*xg.*params.x0./1000,Q); ylabel('Q');title('Nondimensionalized steady state variables');
+    ax2 =subplot(5,1,2);
+    plot(sigma_h.*xg.*params.x0./1000,N);ylabel('N');
+    ax3 = subplot(5,1,3);
+    plot(sigma_h.*xg.*params.x0./1000,S);ylabel('S');
+    ax4 = subplot(5,1,4);
+    plot(sigma_elem.*xg.*params.x0./1000,h);ylabel('h');
+    ax5 = subplot(5,1,5);
+    plot(sigma.*xg.*params.x0./1000,u);ylabel('u');xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
+    linkaxes([ax1,ax2,ax3,ax4,ax5],'x')
+
     
-    b(xsill) = params.b0 + (params.bx*params.sill_min) + params.sill_slope.*(x(xsill)-params.sill_min);
 
-    b(xdsill) = params.b0 + (params.bx*params.sill_min) + params.sill_slope.*sill_length + ...
-            params.bx*(x(xdsill)-params.sill_max);
+    
+end
 
+function plot_vars_new(results,time,params)
+    sigma_elem = params.sigma_elem;
+    sigma_h = params.sigma_h;
+    sigma = params.sigma; 
+    Q = results.Qs(:,time);
+    N = results.Ns(:,time);
+    S = results.Ss(:,time);
+    h = results.hs(:,time);
+    u = results.us(:,time);
+    xg = results.xgs(time);
+        
+    ax1 = subplot(5,1,1); 
+    plot(sigma_h.*xg.*params.x0./1000,Q); ylabel('Q');title('Nondimensionalized steady state variables');
+    hold on;
+    ax2 =subplot(5,1,2);
+    plot(sigma_h.*xg.*params.x0./1000,N);ylabel('N');hold on;
+    ax3 = subplot(5,1,3);
+    plot(sigma_h.*xg.*params.x0./1000,S);ylabel('S');hold on;
+    ax4 = subplot(5,1,4);
+    plot(sigma_elem.*xg.*params.x0./1000,h);ylabel('h');hold on;
+    plot(linspace(0,1)*1500,bed_schoof(linspace(0,1).*1500e3,params)./params.h0,'-k'); 
+    ax5 = subplot(5,1,5);
+    plot(sigma.*xg.*params.x0./1000,u);hold on;ylabel('u');xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
+    linkaxes([ax1,ax2,ax3,ax4,ax5],'x')
+    xlim([0,1500]);
+
+    
+
+    
 end

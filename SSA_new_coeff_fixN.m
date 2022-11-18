@@ -45,7 +45,7 @@ params.x0 = 10*10^3;
 params.h0 = 100;
 params.Q0 = 1500;
 
-params.psi0 = params.rho_i*params.g*params.h0/params.x0;
+params.psi0 = params.rho_i*params.g*params.h0/params.x0/10;
 params.M0 = params.Q0/params.x0;
 params.m0 = params.Q0*params.psi0/params.L;
 params.eps_r = params.m0*params.x0/(params.rho_i*params.Q0);
@@ -175,7 +175,7 @@ results_constN.hs = hs';
 results_constN.us = us';
 results_constN.time_to_ss = time_to_ss; 
 fname = strrep(filename,'c','uc');
-save(fname,'results_constN');
+%save(fname,'results_constN');
 
 %% Implicit system of equations function (using discretization scheme from Schoof 2007)
 function F = flowline_eqns(huxg,params)

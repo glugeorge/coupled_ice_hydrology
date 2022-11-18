@@ -1,13 +1,12 @@
 clear all
 close all
 clc
-load C_new.mat;
 %% Bed parameters
 params.b0 = -100;           %bed topo at x=0
 params.bx = -1e-3;          %linear bed slope
 
-params.sill_min = 2000e3;   %sill min x position
-params.sill_max = 2100e3;   %sill max x position
+params.sill_min = 200e3;   %sill min x position
+params.sill_max = 210e3;   %sill max x position
 params.sill_slope = 1e-3;   %slope of sill
 
 %% Physical parameters
@@ -17,7 +16,7 @@ params.nglen = 3;           %Glen's exponent
 params.Bglen = params.Aglen^(-1/params.nglen);
 params.m     = 1/params.nglen;  %sliding exponent (power law)
 params.accum = 1/params.year; %SMB (constant here)
-params.C     = C_new;%7e6;        %sliding coefficient (power law)
+params.C     = 7e6;        %sliding coefficient (power law)
 params.rhoi  = 917;         %ice density
 params.rhow  = 1028;        %water density
 params.g     = 9.81;        %gravity accel
