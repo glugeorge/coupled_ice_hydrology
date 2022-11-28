@@ -47,8 +47,13 @@ function F = combined_hydro_ice_eqns(QNShuxg,params)
     end
 
     if params.hydro_psi_from_ice_h
-        h_interp = interp1(sigma_elem,h,params.sigma_h,'linear','extrap');
-        params.psi = (-params.rho_w*params.g.*dbdx-gradient(params.rho_i*params.g*h_interp*params.h0)./gradient(params.sigma_h.*params.x0*xg))./params.psi0;
+        %gradient_h = zeros(size(sigma_elem));
+        %gradient_h(1:N1) = gradient(h(1:N1).*params.h0)./gradient(sigma_elem(1:N1).*params.x0*xg);
+        %gradient_h(N1+1:end) = gradient(h(N1+1:end).*params.h0)./gradient(sigma_elem(N1+1:end).*params.x0*xg);
+        %gradient_h_interp = interp1(sigma_elem,gradient_h,params.sigma_h,'linear','extrap');
+        %params.psi = (-params.rho_w*params.g.*dbdx-params.rho_i*params.g.*gradient_h_interp)./params.psi0;
+        h_interp = interp1(sigma_elem,h.*params.h0,params.sigma_h,'linear','extrap');
+        params.psi = (-params.rho_w*params.g.*dbdx-params.rho_i*params.g.*gradient(h_interp)./gradient(params.sigma_h.*params.x0*xg))./params.psi0;
     else
         params.psi = 1*(1-3*exp(-20.*params.sigma_h));
     end

@@ -1,15 +1,22 @@
 close all; clear;
-load C_0.5_A_0.9_c_schoofBed.mat;
+load C_0.2_A_4.9_c_split_highres.mat;
 QNShuxg = results.init_cond;
 params = results.params;
-%plot_terms(QNShuxg,params,'Initial')
-for t=1:10:100
-    plot_vars_new(results,t,params);
-
-end
+%plot_vars_new(results,1,params)
+plot_terms(QNShuxg,params,'Initial')
+% for t=1:10:100
+     %plot_terms(QNShuxg,params,'Initial')
+% 
+% end
 %QNShuxg = results.steady_state;
 % params = results.params;
 % plot_terms(QNShuxg,params,'Final')
+%figure();
+load C_0.2_A_4.9_c_nosplit_highres.mat;
+QNShuxg = results.init_cond;
+params = results.params;
+%plot_vars_new(results,1,params)
+plot_terms(QNShuxg,params,'Initial')
 
 function plot_terms(QNShuxg,params,I_F)
     sigma_elem = params.sigma_elem;
@@ -34,8 +41,8 @@ function plot_terms(QNShuxg,params,I_F)
     accum = params.accum; % normalization done in flowline equations
     h_interp = interp1(sigma_elem,h.*params.h0,sigma,"linear","extrap");
     dhu_dx = zeros(size(x_grid_ice));
-    dhu_dx(1:N1-2) = diff((h_interp(1:N1-1).*u(1:N1-1)).*params.u0)./d_coarse;
-    dhu_dx(N1:end) = diff((h_interp(N1-1:end).*u(N1-1:end)).*params.u0)./d_fine;
+    dhu_dx(1:N1) = gradient((h_interp(1:N1).*u(1:N1)).*params.u0)./d_coarse;
+    dhu_dx(N1+1:end) = gradient((h_interp(N1+1:end).*u(N1+1:end)).*params.u0)./d_fine;
     subplot(3,2,1);
     plot(x_grid_ice./1000,accum.*ones(size(x_grid_ice)),'DisplayName', strcat(I_F,': ','Accumulation'));
     hold on;
@@ -44,14 +51,14 @@ function plot_terms(QNShuxg,params,I_F)
     xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
     title('$\frac{\partial h_g}{\partial t} + \frac{\partial (h_gu)}{\partial x}= a$','Interpreter','latex')
     %% Plot 2: ice momentum conservation
-    N_interp = interp1(sigma_h,N,sigma_elem,"linear","extrap");
-    shear_stress = params.C.*N_interp(2:end)*params.N0.*(u_interp(2:end)./(u_interp(2:end)+params.As*(params.C*N_interp(2:end)*params.N0).^params.n)).^(1/params.n); 
-    b = -bed(xg.*sigma_elem.*params.x0,params);
-    driving_stress = params.rho_i*params.g*h(2:end)*params.h0.*gradient(h(2:end)*params.h0-b(2:end))./gradient(x_grid_ice(2:end));
+    N_interp = interp1(sigma_h,N,sigma,"linear","extrap");
+    shear_stress = params.C.*N_interp(2:end)*params.N0.*(u(2:end).*params.u0./(u(2:end).*params.u0+params.As*(params.C*N_interp(2:end)*params.N0).^params.n)).^(1/params.n); 
+    b = -bed(x_grid_ice,params);
+    driving_stress = params.rho_i*params.g*h_interp(2:end).*gradient(h_interp(2:end)-b(2:end))./gradient(x_grid_ice(2:end));
     shear_and_driving = shear_stress + driving_stress;
     
-    dudx = gradient(u_interp(2:end))./gradient(sigma_elem(2:end)*xg*params.x0);
-    long_stress = gradient(2*params.A^(-1/params.n)*h(2:end)*params.h0.*abs(dudx).^(1/params.n -1).*dudx)./gradient(x_grid_ice(2:end));
+    dudx = gradient(u(2:end).*params.u0)./gradient(x_grid_ice(2:end));
+    long_stress = gradient(2*params.A^(-1/params.n)*h_interp(2:end).*abs(dudx).^(1/params.n -1).*dudx)./gradient(x_grid_ice(2:end));
     subplot(3,2,2);
     plot(x_grid_ice(2:end)./1000,shear_stress,'DisplayName', strcat(I_F,': ','Shear stress'));
     hold on;
@@ -167,11 +174,11 @@ function plot_vars_new(results,time,params)
     plot(sigma_h.*xg.*params.x0./1000,S);ylabel('S');hold on;
     ax4 = subplot(5,1,4);
     plot(sigma_elem.*xg.*params.x0./1000,h);ylabel('h');hold on;
-    plot(linspace(0,1)*1500,bed_schoof(linspace(0,1).*1500e3,params)./params.h0,'-k'); 
+    %plot(linspace(0,1)*1500,bed_schoof(linspace(0,1).*1500e3,params)./params.h0,'-k'); 
     ax5 = subplot(5,1,5);
     plot(sigma.*xg.*params.x0./1000,u);hold on;ylabel('u');xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
     linkaxes([ax1,ax2,ax3,ax4,ax5],'x')
-    xlim([0,1500]);
+    %xlim([0,1500]);
 
     
 

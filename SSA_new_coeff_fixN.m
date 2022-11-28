@@ -3,86 +3,23 @@ close all
 clc
 %% For using same initial condition as coupled 
 
-filename = 'C_0.1_A_4.9_c.mat';
+filename = 'C_0.5_A_0.9_c_schoofBed.mat';
 load(filename);
+params = results.params;
 % case where N is the same as coupled, kept constant
-N = results.init_cond(results.params.Nx+1:2*results.params.Nx);
-h = results.init_cond(3*results.params.Nx+1:4*results.params.Nx);
-u = results.init_cond(4*results.params.Nx+1:5*results.params.Nx);
-xg = results.init_cond(5*results.params.Nx+1);
-params.sigma_h = results.params.sigma_h;
+N = results.init_cond(params.Nh+1:2*params.Nh);
+h = results.init_cond(params.ice_start+1:params.ice_start+ params.Nx);
+u = results.init_cond(params.ice_start + params.Nx+1:params.ice_start+2*params.Nx);
+xg = results.init_cond(params.ice_start+2*params.Nx+1);
+
+params.A = 4.9e-25;
+params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
 params.fixed_N_grid = params.sigma_h*xg; 
-params.N_scaled = N*results.params.N0;
+params.N_scaled = N*params.N0;
 h_scaled = h*results.params.h0;
 u_scaled = u*results.params.u0;
 
-% case where N is unifrom and constant and C varies
-% params.N_scaled = ones(size(N)).*100000;
-% load C_new.mat
-% params.C_new = C_new;
-%% Bed parameters
-params.b0 = -100;           %bed topo at x=0
-params.bx = -1e-3;          %linear bed slope
-
-params.sill_min = 2000e3;   %sill min x position
-params.sill_max = 2100e3;   %sill max x position
-params.sill_slope = 1e-3;   %slope of sill
-
-%% Physical parameters
-params.A = 2.9e-25; % From Alex Robel's code
-params.n = 3;
-params.rho_i = 917;
-params.rho_w = 1028;
-params.g = 9.81;
-params.C = results.params.C; % 
-params.As = 2.26e-21; % Calculated 
-params.f = 0.07; % From Kingslake thesis
-params.K0 = 10^-24; % From Kingslake thesis  
-params.L = 3.3e5; % Kingslake thesis
-params.year = 3600*24*365;
-%% Scaling params (coupled model equations solved in non-dim form)
-params.x0 = 10*10^3;
-params.h0 = 100;
-params.Q0 = 1500;
-
-params.psi0 = params.rho_i*params.g*params.h0/params.x0/10;
-params.M0 = params.Q0/params.x0;
-params.m0 = params.Q0*params.psi0/params.L;
-params.eps_r = params.m0*params.x0/(params.rho_i*params.Q0);
-params.S0 = (params.f*params.rho_w*params.g*params.Q0^2/params.psi0)^(3/8);
-params.th0 = params.rho_i*params.S0/params.m0;
-params.N0 = (params.K0*params.th0)^(-1/3);
-params.delta = params.N0/(params.x0*params.psi0);
-%params.u0 = (rho_i*g*params.h0^2/(C*params.N0*params.x0))^n;
-params.u0 = params.As*(params.C*params.N0)^params.n;
-params.t0 = params.x0/params.u0;
-params.a0 = params.h0/params.t0;
-params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
-%gamma = As*(C*N0)^n;
-params.gamma = (params.C*params.N0*params.x0)/(params.rho_i*params.g*params.h0^2);
-params.beta = params.th0/params.t0;
-params.r = params.rho_i/params.rho_w;
-
-params.transient = 0;   %0 if solving for steady-state, 1 if solving for transient evolution
-
-%% Grid parameters
-params.tfinal = 7.5e2.*params.year;   %length of transient simulation
-params.Nt = 150;                    %number of time steps
-params.dt = params.tfinal/params.Nt;%time step length
-params.Nx = 200;                    %number of grid points
-params.N1 = 100;                    %number of grid points in coarse domain
-params.sigGZ = 0.97;                %extent of coarse grid (where GL is at sigma=1)
-% params.sigma = linspace(0,1-(1/(2*params.Nx)),params.Nx)';
-% params.sigma = [linspace(0,0.97,params.Nx/2)';linspace(0.97+(0.03/(params.Nx/2)),1-(0.03/(2*params.Nx)),params.Nx/2)']; %piecewise refined grid, with 30x finer resolution near GL
-sigma1=linspace(params.sigGZ/(params.N1+0.5), params.sigGZ, params.N1);
-sigma2=linspace(params.sigGZ, 1, params.Nx-params.N1+1);
-params.sigma = [sigma1, sigma2(2:end)]';    %grid points on velocity (includes GL, not ice divide)
-params.sigma_elem = [0;(params.sigma(1:params.Nx-1) + params.sigma(2:params.Nx))./2]; %grid points on thickness (includes divide, not GL)
-params.dsigma = diff(params.sigma); %grid spacing
-
-
 %% Test to make sure flowline equations make sense
-params.accum = results.params.accum;%1/params.year;
 %hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
 h = h_scaled/params.h0;%1 - (1-hf).*params.sigma;
 u = u_scaled/params.u0;%0.3*(params.sigma_elem.^(1/3)) + 1e-3;
@@ -108,7 +45,7 @@ flf = @(huxg) flowline_eqns(huxg,params);
 h = huxg_init(1:params.Nx);
 u = huxg_init(params.Nx+1:2*params.Nx);
 xg = huxg_init(end);
-hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
+hf = (-bed_schoof(xg.*params.x0,params)/params.h0)/(params.r);
 
 %% Calculate steady state solution
 %params.accum = 1/params.year;
@@ -148,7 +85,7 @@ end
 
 %% Plot transient solution
 figure();
-ts = linspace(0,params.tfinal./params.year,params.Nt);
+ts = linspace(0,params.end_year,params.Nt);
 subplot(3,1,1);plot(ts,xgs.*params.x0./1e3,'linewidth',3);xlabel('time (yr)');ylabel('x_g');hold on;plot(results.ts,results.xgs.*params.x0./1e3,'linewidth',3)
 %subplot(3,1,2);contourf(ts,params.sigma_elem,hs'.*params.hscale);colorbar;xlabel('time (yr)');ylabel('sigma');title('thickness (m)');set(gca,'Ydir','Reverse')
 subplot(3,1,3);contourf(ts,params.sigma,us'.*params.u0.*params.year);colorbar;xlabel('time (yr)');ylabel('sigma');title('velocity (m/yr)');set(gca,'Ydir','Reverse')
@@ -184,7 +121,7 @@ function F = flowline_eqns(huxg,params)
     h = huxg(1:params.Nx);
     u = huxg(params.Nx+1:2*params.Nx);
     xg = huxg(2*params.Nx+1);
-    hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
+    hf = (-bed_schoof(xg.*params.x0,params)/params.h0)/(params.r);
 
     %grid params unpack
     dt = params.dt/params.t0;
@@ -193,7 +130,7 @@ function F = flowline_eqns(huxg,params)
     N1 = params.N1;
     sigma = params.sigma;
     sigma_elem = params.sigma_elem;
-    b = -bed(xg.*sigma.*params.x0,params)/params.h0;
+    b = -bed_schoof(xg.*sigma.*params.x0,params)/params.h0;
     Fh = zeros(Nx,1);
     Fu = zeros(Nx,1);
     
@@ -254,17 +191,3 @@ function F = flowline_eqns(huxg,params)
     F = [Fh;Fu;Fxg];
 end
 
-%% Bed topography function
-function b = bed(x,params)
-    xsill = x>params.sill_min & x<params.sill_max;
-    xdsill = x>=params.sill_max;
-    sill_length = params.sill_max-params.sill_min;
-    
-    b = params.b0 + params.bx.*x;
-    
-    b(xsill) = params.b0 + (params.bx*params.sill_min) + params.sill_slope.*(x(xsill)-params.sill_min);
-
-    b(xdsill) = params.b0 + (params.bx*params.sill_min) + params.sill_slope.*sill_length + ...
-            params.bx*(x(xdsill)-params.sill_max);
-
-end
