@@ -1,22 +1,21 @@
 close all; clear;
-load C_0.2_A_4.9_c_split_highres.mat;
-QNShuxg = results.init_cond;
+load C_0.5_A_2.9_c_schoof_retreat.mat;
+%QNShuxg = results.init_cond;
 params = results.params;
-%plot_vars_new(results,1,params)
-plot_terms(QNShuxg,params,'Initial')
-% for t=1:10:100
-     %plot_terms(QNShuxg,params,'Initial')
-% 
-% end
+%plot_terms(QNShuxg,params,'Initial')
+for t=1:10:81
+    plot_vars_new(results,t,params)
+end
 %QNShuxg = results.steady_state;
 % params = results.params;
 % plot_terms(QNShuxg,params,'Final')
 %figure();
-load C_0.2_A_4.9_c_nosplit_highres.mat;
-QNShuxg = results.init_cond;
-params = results.params;
+%load C_0.2_A_4.9_c_nosplit_highres.mat;
+%QNShuxg = results.init_cond;
+%params = results.params;
 %plot_vars_new(results,1,params)
-plot_terms(QNShuxg,params,'Initial')
+
+%plot_terms(QNShuxg,params,'Initial')
 
 function plot_terms(QNShuxg,params,I_F)
     sigma_elem = params.sigma_elem;
@@ -168,17 +167,22 @@ function plot_vars_new(results,time,params)
     ax1 = subplot(5,1,1); 
     plot(sigma_h.*xg.*params.x0./1000,Q); ylabel('Q');title('Nondimensionalized steady state variables');
     hold on;
+    if mod(time-1,20) == 0
+    text(max(sigma_h.*xg.*params.x0./1000),max(Q),['t=',num2str(time-1)])
+    end
     ax2 =subplot(5,1,2);
     plot(sigma_h.*xg.*params.x0./1000,N);ylabel('N');hold on;
     ax3 = subplot(5,1,3);
     plot(sigma_h.*xg.*params.x0./1000,S);ylabel('S');hold on;
     ax4 = subplot(5,1,4);
     plot(sigma_elem.*xg.*params.x0./1000,h);ylabel('h');hold on;
-    %plot(linspace(0,1)*1500,bed_schoof(linspace(0,1).*1500e3,params)./params.h0,'-k'); 
+    if time==81
+        plot(linspace(0,1)*1500,bed_schoof(linspace(0,1).*1500e3,params)./params.h0,'-k'); 
+    end
     ax5 = subplot(5,1,5);
     plot(sigma.*xg.*params.x0./1000,u);hold on;ylabel('u');xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
     linkaxes([ax1,ax2,ax3,ax4,ax5],'x')
-    %xlim([0,1500]);
+    xlim([0,1500]);
 
     
 

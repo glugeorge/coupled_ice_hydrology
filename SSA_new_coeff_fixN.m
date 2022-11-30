@@ -3,7 +3,7 @@ close all
 clc
 %% For using same initial condition as coupled 
 
-filename = 'C_0.5_A_0.9_c_schoofBed.mat';
+filename = 'C_0.5_A_2.9_c_schoof_retreat.mat';
 load(filename);
 params = results.params;
 % case where N is the same as coupled, kept constant
@@ -12,7 +12,7 @@ h = results.init_cond(params.ice_start+1:params.ice_start+ params.Nx);
 u = results.init_cond(params.ice_start + params.Nx+1:params.ice_start+2*params.Nx);
 xg = results.init_cond(params.ice_start+2*params.Nx+1);
 
-params.A = 4.9e-25;
+params.A = 0.9e-25;
 params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
 params.fixed_N_grid = params.sigma_h*xg; 
 params.N_scaled = N*params.N0;
@@ -51,23 +51,24 @@ hf = (-bed_schoof(xg.*params.x0,params)/params.h0)/(params.r);
 %params.accum = 1/params.year;
 params.A = results.params.A; 
 params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
-flf = @(huxg) flowline_eqns(huxg,params);
-[huxg_final,F,exitflag,output,JAC] = fsolve(flf,huxg0,options);
-xg_f = huxg_final(end);
+%flf = @(huxg) flowline_eqns(huxg,params);
+%[huxg_final,F,exitflag,output,JAC] = fsolve(flf,huxg0,options);
+%xg_f = huxg_final(end);
 
 %% Calculate transient GL evolution over bedrock peak
 xgs = nan.*ones(1,params.Nt);
 hs = nan.*ones(params.Nt,params.Nx);
 us = nan.*ones(params.Nt,params.Nx);
-huxg_t = huxg_init;
-params.h_old = huxg_t(1:params.Nx);
-params.xg_old = huxg_t(end);
-hs(1,:) = huxg_t(1:params.Nx);
-us(1,:) = huxg_t(params.Nx+1:2*params.Nx);
-xgs(1) = huxg_t(end);
+params.h_old = results.hs(:,29);%huxg_t(1:params.Nx);
+params.xg_old = results.xgs(29);
+hs(1,:) = results.hs(:,30);
+us(1,:) = results.us(:,30);
+xgs(1) = results.xgs(30);
 params.transient = 1;
 time_to_ss = 0;
-for t=2:params.Nt
+huxg_t = [hs(1,:)';us(1,:)';xgs(1)];
+
+for t=30:params.Nt
     flf = @(huxg) flowline_eqns(huxg,params);
     [huxg_t,F,exitflag,output,JAC] = fsolve(flf,huxg_t,options);
     
@@ -77,9 +78,9 @@ for t=2:params.Nt
     xgs(t) = huxg_t(end);
     hs(t,:) = huxg_t(1:params.Nx)';
     us(t,:) = huxg_t(params.Nx+1:end-1)';
-    if abs(xg_f - xgs(t)) < 0.001*xg_f && time_to_ss == 0
-        time_to_ss = (t-1)*params.dt/params.year;
-    end
+    %if abs(xg_f - xgs(t)) < 0.001*xg_f && time_to_ss == 0
+    %    time_to_ss = (t-1)*params.dt/params.year;
+    %end
 end
 
 
@@ -105,12 +106,12 @@ end
 %% Save results
 results_constN.params = params;
 results_constN.init_cond = huxg_init;
-results_constN.steady_state = huxg_final;
+%results_constN.steady_state = huxg_final;
 results_constN.xgs = xgs;
 results_constN.ts = ts;
 results_constN.hs = hs';
 results_constN.us = us';
-results_constN.time_to_ss = time_to_ss; 
+%results_constN.time_to_ss = time_to_ss; 
 fname = strrep(filename,'c','uc');
 %save(fname,'results_constN');
 
@@ -147,7 +148,7 @@ function F = flowline_eqns(huxg,params)
     h_old = params.h_old;
     xg_old = params.xg_old;
     N = interp1(params.fixed_N_grid,params.N_scaled./params.N0,sigma*xg);
-    
+    N(end) = 0;
     % If using variable C
     %C_adjust = params.C_new./params.C;
     % else
