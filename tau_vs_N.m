@@ -16,19 +16,28 @@ max_N = max(N_ice);
 mid_N = max_N/2;
 max_u = max(u);
 min_u = min(u);
-figure();
-plot(sigma,N_ice,'DisplayName','N');hold on; plot(sigma,u,'DisplayName','u');
-title('Nondimensionalized variable steady state profiles');
-xlabel('sigma'); legend;
+% figure();
+% plot(sigma,N_ice,'DisplayName','N');hold on; plot(sigma,u,'DisplayName','u');
+% title('Nondimensionalized variable steady state profiles');
+% xlabel('sigma'); legend;
+% 
+% figure();
+% u_arr = linspace(min_u,max_u);
+% tau = params.gamma.*0.01.*(u_arr./(u_arr + 0.01.^params.n)).^(1/params.n);
+% plot(u_arr,tau,'DisplayName',['N = ',num2str(0.01)]);
+% hold on;
+% tau = params.gamma.*mid_N.*(u_arr./(u_arr + mid_N.^params.n)).^(1/params.n);
+% plot(u_arr,tau,'DisplayName',['N = ',num2str(mid_N)]);
+% 
+% tau = params.gamma.*max_N.*(u_arr./(u_arr + max_N.^params.n)).^(1/params.n);
+% plot(u_arr,tau,'DisplayName',['N = ',num2str(max_N)]);
+% ylabel('Non-dimensionalized tau');xlabel('Non-dimensionalized u');legend
 
 figure();
 u_arr = linspace(min_u,max_u);
-tau = params.gamma.*0.01.*(u_arr./(u_arr + 0.01.^params.n)).^(1/params.n);
-plot(u_arr,tau,'DisplayName',['N = ',num2str(0.01)]);
-hold on;
-tau = params.gamma.*mid_N.*(u_arr./(u_arr + mid_N.^params.n)).^(1/params.n);
-plot(u_arr,tau,'DisplayName',['N = ',num2str(mid_N)]);
+u_mesh = params.u0*ones(length(u_arr)).*u_arr;
+N_arr = linspace(0.01,max_N);
+N_mesh = (params.N0*ones(length(N_arr)).*N_arr)';
 
-tau = params.gamma.*max_N.*(u_arr./(u_arr + max_N.^params.n)).^(1/params.n);
-plot(u_arr,tau,'DisplayName',['N = ',num2str(max_N)]);
-ylabel('Non-dimensionalized tau');xlabel('Non-dimensionalized u');legend
+tau = params.gamma.*N_mesh.*(u_mesh./(u_mesh + N_mesh.^params.n)).^(1/params.n);
+surface(u_mesh,N_mesh,tau,'EdgeColor','none');c = colorbar;xlabel('u');ylabel(c,'tau');ylabel('N');

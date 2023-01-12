@@ -49,10 +49,10 @@ params.r = params.rho_i/params.rho_w;
 params.transient = 0;
 
 %% Grid parameters - ice sheet
-params.Nx = 600;                    %number of grid points - 200
-params.N1 = 100;                    %number of grid points in coarse domain - 100
-params.Nh = 600;
-params.sigGZ = 0.85;                %extent of coarse grid (where GL is at sigma=1) - 0.97
+params.Nx = 1200;                    %number of grid points - 200
+params.N1 = 200;                    %number of grid points in coarse domain - 100
+params.Nh = 1200;
+params.sigGZ = 0.80;                %extent of coarse grid (where GL is at sigma=1) - 0.97
 sigma1=linspace(params.sigGZ/(params.N1+0.5), params.sigGZ, params.N1);
 sigma2=linspace(params.sigGZ, 1, params.Nx-params.N1+1);
 params.sigma = [sigma1, sigma2(2:end)]';    %grid points on velocity (includes GL, not ice divide)
@@ -66,7 +66,7 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
 params.Nt =100;                    %number of time steps - normally 150
-params.end_year = 10000; %normally 7500
+params.end_year = 5; %normally 7500
 
 params.dt = params.end_year*params.year/params.Nt;
 
@@ -77,6 +77,7 @@ params.hydro_psi_from_ice_h = 1;
 params.ice_N_from_hydro = 1;
 
 %% Initial "steady state" conditions
+params.shear_scale = 1;
 Q = 0.001*ones(params.Nh,1);
 N = ones(params.Nh,1);
 S = 5/params.S0*ones(params.Nh,1); 
@@ -114,6 +115,7 @@ hf = (-bed_schoof(xg.*params.x0,params)/params.h0)/(params.r);
 %% Final steady state solution
 % params.accum = 1./params.year;
 % params.Q_in = 10/params.Q0;
+ params.A_old = params.A;
  params.A = 2.9e-25; 
  params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
 % flf = @(QNShuxg) schoof_combined_hydro_ice_eqns(QNShuxg,params);
@@ -194,6 +196,7 @@ results.Ss = Ss';
 %results.time_to_ss = time_to_ss; 
 
 %fname = strcat('base_run',num2str(params.A*1e25),'_c.mat');
-fname = strcat('C_',num2str(params.C),'_A_',num2str(params.A*1e25),'_c_schoof_retreat.mat');
+fname = 'schoof_retreat_highres_tiny.mat';
 %fname = strcat('Nh_',num2str(params.Nh),'_coarse_',num2str(params.N1),'_fine_',num2str(params.Nx-params.N1),'.mat');
 save(fname,'results');
+

@@ -48,10 +48,10 @@ params.r = params.rho_i/params.rho_w;
 params.transient = 0;
 
 %% Grid parameters - ice sheet
-params.Nx = 300;                    %number of grid points - 200
-params.N1 = 100;                    %number of grid points in coarse domain - 100
-params.Nh = 300;
-params.sigGZ = 0.97;                %extent of coarse grid (where GL is at sigma=1) - 0.97
+params.Nx = 1002;                    %number of grid points - 200
+params.N1 = 2;                    %number of grid points in coarse domain - 100
+params.Nh = 1002;
+params.sigGZ = 0.01;                %extent of coarse grid (where GL is at sigma=1) - 0.97
 sigma1=linspace(params.sigGZ/(params.N1+0.5), params.sigGZ, params.N1);
 sigma2=linspace(params.sigGZ, 1, params.Nx-params.N1+1);
 params.sigma = [sigma1, sigma2(2:end)]';    %grid points on velocity (includes GL, not ice divide)
@@ -65,7 +65,7 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
 params.Nt =50;                    %number of time steps - normally 150
-params.end_year = 5000; %normally 7500
+params.end_year = 1000; %normally 7500
 
 params.dt = params.end_year*params.year/params.Nt;
 
@@ -76,6 +76,7 @@ params.hydro_psi_from_ice_h = 1;
 params.ice_N_from_hydro = 1;
 
 %% Initial "steady state" conditions
+params.shear_scale = 0.1;
 Q = 0.001*ones(params.Nh,1);
 N = ones(params.Nh,1);
 S = 5/params.S0*ones(params.Nh,1); 
@@ -85,7 +86,7 @@ params.N_terminus = 0;
 params.accum = 1./params.year;
 xg = 100e3/params.x0;
 hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
-h = 1 - (1-hf).*params.sigma;
+h =  1 - (1-hf).*params.sigma;
 u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
 params.Q_in = 10/params.Q0;
 
@@ -111,13 +112,14 @@ xg = QNShuxg_init(params.ice_start+2*params.Nx+1);
 hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
 
 %% Final steady state solution
-% params.accum = 1./params.year;
+% params.accum 
+% = 1./params.year;
 % params.Q_in = 10/params.Q0;
  params.A = 4.9e-25; 
  params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
-% flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
-% [QNShuxg_final,F,exitflag,output,JAC] = fsolve(flf,QNShuxg_init,options);
-% xg_f = QNShuxg_final(params.ice_start+2*params.Nx+1);
+ flf = @(QNShuxg) combined_hydro_ice_eqns(QNShuxg,params);
+ [QNShuxg_final,F,exitflag,output,JAC] = fsolve(flf,QNShuxg_init,options);
+ xg_f = QNShuxg_final(params.ice_start+2*params.Nx+1);
 
 %% Now for evolution 
 Qs = nan.*ones(params.Nt,params.Nh);
@@ -196,6 +198,6 @@ results.Ss = Ss';
 %results.time_to_ss = time_to_ss; 
 
 %fname = strcat('base_run',num2str(params.A*1e25),'_c.mat');
-%fname = strcat('C_',num2str(params.C),'_A_',num2str(params.A*1e25),'_c_nosplit_fine_hydro.mat');
+fname = strcat('C_',num2str(params.C),'_A_',num2str(params.A*1e25),'_c_0.1shear.mat');
 %fname = strcat('Nh_',num2str(params.Nh),'_coarse_',num2str(params.N1),'_fine_',num2str(params.Nx-params.N1),'.mat');
-%save(fname,'results');
+save(fname,'results');

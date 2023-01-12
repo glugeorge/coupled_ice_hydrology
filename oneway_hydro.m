@@ -64,21 +64,22 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 
 
 %% Define velocity and ice shape
-load C_0.2_A_4.9_c_nosplit.mat
-params = results.params;
-params.xg = results.xgs(end);
-params.h = results.hs(:,end);
-params.u = results.us(:,end);
-%params.xg = 100e3./params.x0;
-b = bed(params.xg.*params.sigma_elem.*params.x0,params);
-%params.h = 10*sqrt(1-params.sigma_elem); %(b + 1000)./params.h0; %
+% load C_0.2_A_4.9_c_nosplit.mat
+% params = results.params;
+% params.xg = results.xgs(end);
+% params.h = results.hs(:,end);
+% params.u = results.us(:,end);
+% %params.xg = 100e3./params.x0;
+params.xg = 100e3./params.x0;
+
+params.h = ones(params.Nx,1).*1000./params.h0; %10*sqrt(1-params.sigma_elem); 
 %params.h(params.N1+1) = (1+0.5*(1+(params.dsigma(params.N1)/params.dsigma(params.N1-1))))*params.h(params.N1) - 0.5*(1+(params.dsigma(params.N1)/params.dsigma(params.N1-1)))*params.h(params.N1-1);
-%params.u = (1e3/params.year)*ones(params.Nx,1)./params.u0;
+params.u = (1e3/params.year)*ones(params.Nx,1)./params.u0;
 
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
-params.Nt =100;                    %number of time steps - normally 150
-params.end_year = 5; %normally 7500
+params.Nt =300;                    %number of time steps - normally 150
+params.end_year = 30; %normally 7500
 
 params.dt = params.end_year*params.year/params.Nt;
 
@@ -161,6 +162,11 @@ plot(linspace(0,1),bed(linspace(0,1).*params.xg,params)./params.h0,'-k');
 ax5 = subplot(5,1,5);
 plot(params.sigma,params.u);hold on;ylabel('u');xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
 linkaxes([ax1,ax2,ax3,ax4,ax5],'x')
+
+%% Saving relevant variables
+save slab_oneway.mat params Qs Ns Ss;
+
+%% Functions
 function F = hydro_eqns(QNShuxg,params)
     % unpack variables
     M = params.M;

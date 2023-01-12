@@ -3,8 +3,7 @@ close all
 clc
 %% For using same initial condition as coupled 
 
-filename = 'C_0.5_A_2.9_c_schoof_retreat.mat';
-load(filename);
+load schoof_retreat_highres_tiny.mat
 params = results.params;
 % case where N is the same as coupled, kept constant
 N = results.init_cond(params.Nh+1:2*params.Nh);
@@ -55,20 +54,28 @@ params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params
 %[huxg_final,F,exitflag,output,JAC] = fsolve(flf,huxg0,options);
 %xg_f = huxg_final(end);
 
+
+%% Establish timings
+params.year = 3600*24*365;  %number of seconds in a year
+params.Nt =100;                    %number of time steps - normally 150
+params.end_year = 5; %normally 7500
+
+params.dt = params.end_year*params.year/params.Nt;
+
 %% Calculate transient GL evolution over bedrock peak
+huxg_t = huxg0;
 xgs = nan.*ones(1,params.Nt);
 hs = nan.*ones(params.Nt,params.Nx);
 us = nan.*ones(params.Nt,params.Nx);
-params.h_old = results.hs(:,29);%huxg_t(1:params.Nx);
-params.xg_old = results.xgs(29);
-hs(1,:) = results.hs(:,30);
-us(1,:) = results.us(:,30);
-xgs(1) = results.xgs(30);
+params.h_old = huxg_t(1:params.Nx);
+params.xg_old = xg;
+hs(1,:) = huxg_t(1:params.Nx);
+us(1,:) = huxg_t(params.Nx+1:2*params.Nx);
+xgs(1) = huxg_t(end);
 params.transient = 1;
 time_to_ss = 0;
-huxg_t = [hs(1,:)';us(1,:)';xgs(1)];
-
-for t=30:params.Nt
+params.N_scaled = 0.9git.*params.N_scaled;
+for t=1:params.Nt
     flf = @(huxg) flowline_eqns(huxg,params);
     [huxg_t,F,exitflag,output,JAC] = fsolve(flf,huxg_t,options);
     
@@ -95,13 +102,11 @@ subplot(3,1,2);contourf(ts,params.sigma_elem,hs'.*params.h0);colorbar;xlabel('ti
 %subplot(3,1,3);surface(ts,params.sigma,us'.*params.uscale.*params.year,EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('sigma');title('velocity (m/yr)');set(gca,'Ydir','Reverse')
 %% Plot evolution of N
 figure();
-hold on;
-colors = ['r','y','g','b','k'];
-for i=1:5
-    plot(params.sigma*xgs(i)*params.x0/1000,interp1(params.fixed_N_grid,params.N_scaled,params.sigma*xgs(i)),"Color",colors(i))
-    plot(params.sigma(end)*xgs(i)*params.x0/1000,interp1(params.fixed_N_grid,params.N_scaled,params.sigma(end)*xgs(i)),'o',"Color",colors(i))
+pointsize = 10;
 
-end
+scatter(params.sigma(end).*xgs.*params.x0/1000,interp1(params.fixed_N_grid,params.N_scaled,params.sigma(end)*xgs),pointsize,ts); a = colorbar();colormap jet; ylabel(a,'time (yr)')
+hold on;
+plot(params.fixed_N_grid*params.x0/1000,params.N_scaled);ylabel('N (Pa)');xlabel('distance from divide (km)');
 
 %% Save results
 results_constN.params = params;
@@ -112,7 +117,7 @@ results_constN.ts = ts;
 results_constN.hs = hs';
 results_constN.us = us';
 %results_constN.time_to_ss = time_to_ss; 
-fname = strrep(filename,'c','uc');
+fname = 'const_N.mat';
 %save(fname,'results_constN');
 
 %% Implicit system of equations function (using discretization scheme from Schoof 2007)
@@ -148,7 +153,6 @@ function F = flowline_eqns(huxg,params)
     h_old = params.h_old;
     xg_old = params.xg_old;
     N = interp1(params.fixed_N_grid,params.N_scaled./params.N0,sigma*xg);
-    N(end) = 0;
     % If using variable C
     %C_adjust = params.C_new./params.C;
     % else

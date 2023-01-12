@@ -1,11 +1,12 @@
 close all; clear;
-load C_0.5_A_2.9_c_schoof_retreat.mat;
-%QNShuxg = results.init_cond;
+load schoof_retreat_highres.mat
+QNShuxg = results.init_cond;
 params = results.params;
-%plot_terms(QNShuxg,params,'Initial')
-for t=1:10:81
-    plot_vars_new(results,t,params)
-end
+plot_terms(QNShuxg,params,'Initial')
+%  for t=1:10:100
+%      plot_vars_new(results,t,params)
+%  end
+
 %QNShuxg = results.steady_state;
 % params = results.params;
 % plot_terms(QNShuxg,params,'Final')
@@ -22,12 +23,18 @@ function plot_terms(QNShuxg,params,I_F)
     sigma_h = params.sigma_h;
     sigma = params.sigma; 
     N1 = params.N1;
-    Q = QNShuxg(1:params.Nx);
-    N = QNShuxg(params.Nx+1:2*params.Nx);
-    S = QNShuxg(2*params.Nx+1:3*params.Nx);
-    h = QNShuxg(3*params.Nx+1:4*params.Nx);
-    u = QNShuxg(4*params.Nx+1:5*params.Nx);
-    xg = QNShuxg(5*params.Nx+1);
+%     Q = QNShuxg(1:params.Nx);
+%     N = QNShuxg(params.Nx+1:2*params.Nx);
+%     S = QNShuxg(2*params.Nx+1:3*params.Nx);
+%     h = QNShuxg(3*params.Nx+1:4*params.Nx);
+%     u = QNShuxg(4*params.Nx+1:5*params.Nx);
+%     xg = QNShuxg(5*params.Nx+1);
+    Q = QNShuxg(1:params.Nh);
+    N = QNShuxg(params.Nh+1:2*params.Nh);
+    S = QNShuxg(2*params.Nh+1:3*params.Nh);
+    h = QNShuxg(params.ice_start+1:params.ice_start+ params.Nx);
+    u = QNShuxg(params.ice_start + params.Nx+1:params.ice_start+2*params.Nx);
+    xg = QNShuxg(params.ice_start+2*params.Nx+1);
     
     % do ice plots on sigma_elem grid
     x_grid_ice = sigma*xg*params.x0;
@@ -52,7 +59,7 @@ function plot_terms(QNShuxg,params,I_F)
     %% Plot 2: ice momentum conservation
     N_interp = interp1(sigma_h,N,sigma,"linear","extrap");
     shear_stress = params.C.*N_interp(2:end)*params.N0.*(u(2:end).*params.u0./(u(2:end).*params.u0+params.As*(params.C*N_interp(2:end)*params.N0).^params.n)).^(1/params.n); 
-    b = -bed(x_grid_ice,params);
+    b = -bed_schoof(x_grid_ice,params);
     driving_stress = params.rho_i*params.g*h_interp(2:end).*gradient(h_interp(2:end)-b(2:end))./gradient(x_grid_ice(2:end));
     shear_and_driving = shear_stress + driving_stress;
     
