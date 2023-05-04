@@ -5,3 +5,5 @@ results/*
 utils_deprecated/*
 .DS_Store
 stretching_N/*
+*.mat
+*.svg
