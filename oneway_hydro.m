@@ -1,7 +1,7 @@
 close all
 clear all
 clc
-
+addpath '/Users/georgelu/Documents/GitHub/coupled_ice_hydrology/equations_to_solve'
 %% Bed parameters
 params.b0 = -100;           %bed topo at x=0
 params.bx = -1e-3;          %linear bed slope
@@ -24,7 +24,7 @@ params.L = 3.3e5; % Kingslake thesis
 params.year = 3600*24*365;
 %% Scaling params (coupled model equations solved in non-dim form)
 params.x0 = 100*10^3;
-params.h0 = 1000;
+params.h0 = 100;
 params.Q0 = 10;
 
 params.psi0 = params.rho_w*params.g*params.h0/params.x0;
@@ -70,11 +70,11 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 % params.h = results.hs(:,end);
 % params.u = results.us(:,end);
 % %params.xg = 100e3./params.x0;
-params.xg = 250e3./params.x0;
+params.xg = 100e3./params.x0;
 
-params.h =  sqrt(1-params.sigma_elem)+0.5; %ones(params.Nx,1).*1000./params.h0;
+params.h =  10*sqrt(1-params.sigma_elem)+0.1; %ones(params.Nx,1).*1000./params.h0;
 %params.h(params.N1+1) = (1+0.5*(1+(params.dsigma(params.N1)/params.dsigma(params.N1-1))))*params.h(params.N1) - 0.5*(1+(params.dsigma(params.N1)/params.dsigma(params.N1-1)))*params.h(params.N1-1);
-params.u = ones(params.Nx,1);
+params.u = (500/params.year)*ones(params.Nx,1)./params.u0;
 
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
@@ -164,7 +164,7 @@ plot(params.sigma,params.u);hold on;ylabel('u');xlabel('distance from divide, \e
 linkaxes([ax1,ax2,ax3,ax4,ax5],'x')
 
 %% Saving relevant variables
-save quad_oneway_2.mat params Qs Ns Ss;
+%save quad_oneway_1.mat params Qs Ns Ss;
 
 %% Functions
 function F = hydro_eqns(QNShuxg,params)

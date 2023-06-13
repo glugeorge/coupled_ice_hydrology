@@ -3,14 +3,6 @@ close all
 clear all
 clc
 
-%% Bed parameters
-params.b0 = -100;           %bed topo at x=0
-params.bx = -1e-3;          %linear bed slope
-
-params.sill_min = 2000e3;   %sill min x position
-params.sill_max = 2100e3;   %sill max x position
-params.sill_slope = 1e-3;   %slope of sill
-  
 %% Physical parameters
 params.A = 0.9e-25; 
 params.n = 3;
@@ -24,9 +16,9 @@ params.K0 = 10^-24; % From Kingslake thesis
 params.L = 3.3e5; % Kingslake thesis
 params.year = 3600*24*365;
 %% Scaling params (coupled model equations solved in non-dim form)
-params.x0 = 1000*10^3;
+params.x0 = 100*10^3;
 params.h0 = 1000;
-params.Q0 = 1500;
+params.Q0 = 100;
 
 params.psi0 = params.rho_w*params.g*params.h0/params.x0;
 params.M0 = params.Q0/params.x0;
@@ -78,9 +70,9 @@ params.ice_N_from_hydro = 1;
 
 %% Initial "steady state" conditions
 params.shear_scale = 1;
-Q = 0.001*ones(params.Nh,1);
+Q = 0.1*ones(params.Nh,1);
 N = ones(params.Nh,1);
-S = 5/params.S0*ones(params.Nh,1); 
+S = 5/params.S0.*ones(params.Nh,1); 
 params.S_old = S;
 params.M = 0e-4/params.M0; % zero when using schoof bed
 params.N_terminus = 0;
@@ -100,7 +92,7 @@ sige_old = params.sigma_elem;
 QNShuxg0 = [Q;N;S;h;u;xg];
 
 options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
-flf = @(QNShuxg) schoof_combined_hydro_ice_eqns(QNShuxg,params);
+flf = @(QNShuxg) coulomb_schoofbed_transient(QNShuxg,params);
 
 [QNShuxg_init,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
 
@@ -149,7 +141,7 @@ for t=2:params.Nt
 %         params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
 % 
 %     end
-    flf = @(QNShuxg) schoof_combined_hydro_ice_eqns(QNShuxg,params);
+    flf = @(QNShuxg) coulomb_schoofbed_transient(QNShuxg,params);
     [QNShuxg_t,F,exitflag,output,JAC] = fsolve(flf,QNShuxg_t,options);
     t
     Qs(t,:) = QNShuxg_t(1:params.Nh);
@@ -196,7 +188,7 @@ results.Ss = Ss';
 %results.time_to_ss = time_to_ss; 
 
 %fname = strcat('base_run',num2str(params.A*1e25),'_c.mat');
-fname = 'schoof_retreat_highres_tiny.mat';
+fname = 'coulomb_retreat_5yr.mat';
 %fname = strcat('Nh_',num2str(params.Nh),'_coarse_',num2str(params.N1),'_fine_',num2str(params.Nx-params.N1),'.mat');
-%save(fname,'results');
+save(fname,'results');
 

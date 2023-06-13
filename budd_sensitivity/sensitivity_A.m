@@ -1,4 +1,3 @@
-%% This is just so changes to combined (in case i revisit things) don't disrupt these experiments
 close all
 clear all
 clc
@@ -12,21 +11,20 @@ params.sill_max = 2100e3;   %sill max x position
 params.sill_slope = 1e-3;   %slope of sill
   
 %% Physical parameters
-params.A = 0.9e-25; 
+params.A = 0.1e-25; 
 params.n = 3;
 params.rho_i = 917;
 params.rho_w = 1028;
 params.g = 9.81;
-params.C = 0.5; % base 0.2
-params.As = 2.26e-21; % Calculated 
+params.C = 7.624; 
 params.f = 0.07; % From Kingslake thesis
 params.K0 = 10^-24; % From Kingslake thesis  
 params.L = 3.3e5; % Kingslake thesis
 params.year = 3600*24*365;
 %% Scaling params (coupled model equations solved in non-dim form)
-params.x0 = 1000*10^3;
+params.x0 = 100*10^3;
 params.h0 = 1000;
-params.Q0 = 1500;
+params.Q0 = 10;
 
 params.psi0 = params.rho_w*params.g*params.h0/params.x0;
 params.M0 = params.Q0/params.x0;
@@ -36,23 +34,20 @@ params.S0 = (params.f*params.rho_w*params.g*params.Q0^2/params.psi0)^(3/8);
 params.th0 = params.rho_i*params.S0/params.m0;
 params.N0 = (params.K0*params.th0)^(-1/3);
 params.delta = params.N0/(params.x0*params.psi0);
-%params.u0 = (rho_i*g*params.h0^2/(C*params.N0*params.x0))^n;
-params.u0 = params.As*(params.C*params.N0)^params.n;
+params.u0 = (params.rho_i*params.g*params.h0^2/(params.x0*params.N0*params.C))^params.n;
 params.t0 = params.x0/params.u0;
 params.a0 = params.h0/params.t0;
 params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
-%gamma = As*(C*N0)^n;
-params.gamma = (params.C*params.N0*params.x0)/(params.rho_i*params.g*params.h0^2);
 params.beta = params.th0/params.t0;
 params.r = params.rho_i/params.rho_w;
 
 params.transient = 0;
 
 %% Grid parameters - ice sheet
-params.Nx = 1200;                    %number of grid points - 200
-params.N1 = 200;                    %number of grid points in coarse domain - 100
-params.Nh = 1200;
-params.sigGZ = 0.80;                %extent of coarse grid (where GL is at sigma=1) - 0.97
+params.Nx = 300;                    %number of grid points - 200
+params.N1 = 100;                    %number of grid points in coarse domain - 100
+params.Nh = 300;
+params.sigGZ = 0.95;                %extent of coarse grid (where GL is at sigma=1) - 0.97
 sigma1=linspace(params.sigGZ/(params.N1+0.5), params.sigGZ, params.N1);
 sigma2=linspace(params.sigGZ, 1, params.Nx-params.N1+1);
 params.sigma = [sigma1, sigma2(2:end)]';    %grid points on velocity (includes GL, not ice divide)
@@ -62,13 +57,7 @@ params.sigma_elem = [0;(params.sigma(1:params.Nx-1) + params.sigma(2:params.Nx))
 %% Grid parameters - hydro
 params.sigma_h = linspace(0,1,params.Nh)';
 params.dsigma_h = diff(params.sigma_h); %grid spacing
-
-%% Establish timings
-params.year = 3600*24*365;  %number of seconds in a year
-params.Nt =100;                    %number of time steps - normally 150
-params.end_year = 5; %normally 7500
-
-params.dt = params.end_year*params.year/params.Nt;
+params.dt = 1; % just to keep equations ok
 
 %% Determine at what points there is coupling
 % 1 - coupling on, 0 - coupling off
@@ -76,19 +65,19 @@ params.hydro_u_from_ice_u = 1;
 params.hydro_psi_from_ice_h = 1;
 params.ice_N_from_hydro = 1;
 
-%% Initial "steady state" conditions
+%% Initial cond
 params.shear_scale = 1;
-Q = 0.001*ones(params.Nh,1);
+Q = ones(params.Nh,1);
 N = ones(params.Nh,1);
-S = 5/params.S0*ones(params.Nh,1); 
+S = ones(params.Nh,1); 
 params.S_old = S;
 params.M = 0e-4/params.M0; % zero when using schoof bed
 params.N_terminus = 0;
 params.accum = 1./params.year;
-xg = 1500e3/params.x0; % Set high past sill for retreat
-hf = (-bed_schoof(xg.*params.x0,params)/params.h0)/params.r;
-h = 1 - (1-hf).*params.sigma;
-u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
+xg = 200e3/params.x0;
+hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
+h =  1 - (1-hf).*params.sigma;
+u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
 params.Q_in = 10/params.Q0;
 
 params.h_old = h;
@@ -100,7 +89,7 @@ sige_old = params.sigma_elem;
 QNShuxg0 = [Q;N;S;h;u;xg];
 
 options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
-flf = @(QNShuxg) schoof_combined_hydro_ice_eqns(QNShuxg,params);
+flf = @(QNShuxg) budd_flatbed_transient(QNShuxg,params);
 
 [QNShuxg_init,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
 
@@ -110,25 +99,17 @@ S = QNShuxg_init(2*params.Nh+1:3*params.Nh);
 h = QNShuxg_init(params.ice_start+1:params.ice_start+ params.Nx);
 u = QNShuxg_init(params.ice_start + params.Nx+1:params.ice_start+2*params.Nx);
 xg = QNShuxg_init(params.ice_start+2*params.Nx+1);
-hf = (-bed_schoof(xg.*params.x0,params)/params.h0)/(params.r);
+hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
 
-%% Final steady state solution
-% params.accum = 1./params.year;
-% params.Q_in = 10/params.Q0;
- params.A_old = params.A;
- params.A = 2.9e-25; 
- params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
-% flf = @(QNShuxg) schoof_combined_hydro_ice_eqns(QNShuxg,params);
-% [QNShuxg_final,F,exitflag,output,JAC] = fsolve(flf,QNShuxg_init,options);
-% xg_f = QNShuxg_final(params.ice_start+2*params.Nx+1);
-
-%% Now for evolution 
-Qs = nan.*ones(params.Nt,params.Nh);
-Ns = nan.*ones(params.Nt,params.Nh);
-Ss = nan.*ones(params.Nt,params.Nh);
-hs = nan.*ones(params.Nt,params.Nx);
-us = nan.*ones(params.Nt,params.Nx);
-xgs = nan.*ones(1,params.Nt);
+%% Now for remaining sensitivity 
+param_num = 100;
+A_arr = linspace(0.1e-25,10e-25,param_num);
+Qs = nan.*ones(param_num,params.Nh);
+Ns = nan.*ones(param_num,params.Nh);
+Ss = nan.*ones(param_num,params.Nh);
+hs = nan.*ones(param_num,params.Nx);
+us = nan.*ones(param_num,params.Nx);
+xgs = nan.*ones(1,param_num);
 QNShuxg_t = QNShuxg_init;
 
 Qs(1,:) = QNShuxg_t(1:params.Nh);
@@ -141,15 +122,17 @@ xgs(1) = QNShuxg_t(params.ice_start+2*params.Nx+1);
 params.h_old = h;
 params.xg_old =xg;
 params.S_old = S;
-params.transient = 1;
-time_to_ss = 0; % to 99 percent
-for t=2:params.Nt
+for t=1:param_num
 %     if t == 50
 %         params.A = 0.9e-25; 
 %         params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
 % 
 %     end
-    flf = @(QNShuxg) schoof_combined_hydro_ice_eqns(QNShuxg,params);
+    params.A = A_arr(t);
+    params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
+
+
+    flf = @(QNShuxg) budd_flatbed_transient(QNShuxg,params);
     [QNShuxg_t,F,exitflag,output,JAC] = fsolve(flf,QNShuxg_t,options);
     t
     Qs(t,:) = QNShuxg_t(1:params.Nh);
@@ -166,37 +149,23 @@ for t=2:params.Nt
     %end
 end
 
+%% Retreat (back over)
+% params.A = 2.9e-25; 
+% params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
 
 %% Plotting
-ts = linspace(0,params.end_year,params.Nt);
 figure();
-subplot(3,1,1);plot(ts,xgs.*params.x0./1e3,'linewidth',3);xlabel('time (yr)');ylabel('x_g');
-subplot(3,1,2);contourf(ts,params.sigma_elem,hs'.*params.h0);colorbar;xlabel('time (yr)');ylabel('sigma');title('thickness (m)');set(gca,'Ydir','Reverse');
-subplot(3,1,3);contourf(ts,params.sigma,us'.*params.u0.*params.year);colorbar;xlabel('time (yr)');ylabel('sigma');title('velocity (m/yr)');set(gca,'Ydir','Reverse');
+subplot(3,1,1);plot(A_arr,xgs.*params.x0./1e3,'linewidth',3);xlabel('time (yr)');ylabel('x_g');
+subplot(3,1,2);contourf(A_arr,params.sigma_elem,hs'.*params.h0);colorbar;xlabel('time (yr)');ylabel('sigma');title('thickness (m)');set(gca,'Ydir','Reverse');
+subplot(3,1,3);contourf(A_arr,params.sigma,us'.*params.u0.*params.year);colorbar;xlabel('time (yr)');ylabel('sigma');title('velocity (m/yr)');set(gca,'Ydir','Reverse');
 
 figure();
 Q_dim = Qs.*params.Q0;
 N_dim = Ns.*params.N0;
 S_dim = Ss.*params.S0;
-subplot(3,1,1);surface(ts,params.sigma_h,Q_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Flow (m^3/s)');set(gca,'Ydir','Reverse')
-subplot(3,1,2);surface(ts,params.sigma_h,N_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
-subplot(3,1,3);surface(ts,params.sigma_h,S_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
+subplot(3,1,1);surface(A_arr,params.sigma_h,Q_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Flow (m^3/s)');set(gca,'Ydir','Reverse')
+subplot(3,1,2);surface(A_arr,params.sigma_h,N_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Effective Pressure (Pa)');set(gca,'Ydir','Reverse')
+subplot(3,1,3);surface(A_arr,params.sigma_h,S_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
 
 %% Saving values
-results.params = params;
-results.init_cond = QNShuxg_init;
-%results.steady_state = QNShuxg_final;
-results.xgs = xgs;
-results.ts = ts;
-results.hs = hs';
-results.us = us';
-results.Qs = Qs';
-results.Ns = Ns';
-results.Ss = Ss';
-%results.time_to_ss = time_to_ss; 
-
-%fname = strcat('base_run',num2str(params.A*1e25),'_c.mat');
-fname = 'schoof_retreat_highres_tiny.mat';
-%fname = strcat('Nh_',num2str(params.Nh),'_coarse_',num2str(params.N1),'_fine_',num2str(params.Nx-params.N1),'.mat');
-%save(fname,'results');
-
+save('sens_A.mat');
