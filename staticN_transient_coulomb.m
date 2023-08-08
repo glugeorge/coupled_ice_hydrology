@@ -3,7 +3,7 @@ close all
 clc
 %% For using same initial condition as coupled 
 
-load coulomb_retreat_5yr.mat
+load coulomb_retreat_5000yr.mat
 params = results.params;
 % case where N is the same as coupled, kept constant
 N = results.init_cond(params.Nh+1:2*params.Nh);
@@ -17,6 +17,7 @@ params.fixed_N_grid = params.sigma_h*xg;
 params.N_scaled = N*params.N0;
 h_scaled = h*results.params.h0;
 u_scaled = u*results.params.u0;
+params.transient = 0;
 
 %% Test to make sure flowline equations make sense
 %hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
@@ -48,17 +49,17 @@ hf = (-bed_schoof(xg.*params.x0,params)/params.h0)/(params.r);
 
 %% Calculate steady state solution
 %params.accum = 1/params.year;
-params.A = results.params.A; 
+params.A = 4.9e-25; 
 params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
-%flf = @(huxg) flowline_eqns(huxg,params);
-%[huxg_final,F,exitflag,output,JAC] = fsolve(flf,huxg0,options);
-%xg_f = huxg_final(end);
+flf = @(huxg) flowline_eqns(huxg,params);
+[huxg_final,F,exitflag,output,JAC] = fsolve(flf,huxg_init,options);
+xg_f = huxg_final(end);
 
 
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
 params.Nt =100;                    %number of time steps - normally 150
-params.end_year = 5; %normally 7500
+params.end_year = 5000; %normally 7500
 
 params.dt = params.end_year*params.year/params.Nt;
 
@@ -115,8 +116,10 @@ results_constN.xgs = xgs;
 results_constN.ts = ts;
 results_constN.hs = hs';
 results_constN.us = us';
+results_constN.xg_f = xg_f;
+
 %results_constN.time_to_ss = time_to_ss; 
-fname = 'const_N_coulomb.mat';
+fname = 'const_N_coulomb_5000.mat';
 save(fname,'results_constN');
 
 %% Implicit system of equations function (using discretization scheme from Schoof 2007)

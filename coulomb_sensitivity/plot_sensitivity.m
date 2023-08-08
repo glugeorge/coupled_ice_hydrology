@@ -3,8 +3,9 @@ close all; clear;
 set(groot,'defaultAxesTickLabelInterpreter','latex'); 
 myFiles = dir(fullfile('*.mat'));
 % first load variables to plot
-figure(Position=[250,550,800,200])
-tiledlayout('horizontal',"Padding","loose",'TileSpacing','tight')
+fig = figure(Position=[250,550,800,150])
+h = axes(fig);
+tiledlayout('horizontal','TileSpacing','tight')
 for i=1:length(myFiles)
     load(myFiles(i).name);
 end
@@ -16,50 +17,77 @@ xlabels = ["$A$ [$\times10^{-25}$ s$^{-1}$ Pa$^{-3}$]",...
             "$A_s$ [$\times10^{-21}$ m s$^{-1}$ Pa$^{-3}$]",...
             "$C_C$"]; 
 titles = [""];
-values_used = [2.9,1,0,10,2.26,0.2]
+values_used = [2.9,1,1e-5,0.01,2.26,0.2]
 for i=1:length(myFiles)
     load(myFiles(i).name);
     to_plot = variables(i,:);
     nexttile;
-    contourf(to_plot,params.sigma_elem,hs'.*params.h0/1000,EdgeColor='None'); 
+    surface(to_plot,params.sigma_elem,hs'.*params.h0/1000,EdgeColor='None'); 
     caxis([0 2]);
     xlabel(xlabels(i),'Interpreter','latex');
     set(gca,'Ydir','Reverse');
     xline(values_used(i), '--k',LineWidth=2);
     ylim([0.5 1])
+    xlim([min(to_plot) max(to_plot)]);
+    
     if i == 1
-        ylabel('normalized distance from divide, $\sigma$','Interpreter','latex')
+        ylabel('$\sigma$','Interpreter','latex')
     else
         set(gca,'YTickLabel',[]);
     end
 end
-c = colorbar;
+c = colorbar();
+c.Layout.Tile = 'east';
 c.Label.String = 'ice thickness $h$ [km]';
 c.Label.Interpreter = 'latex';
 c.TickLabelInterpreter = 'latex';
 
-figure(Position=[250,550,800,200])
+figure(Position=[250,550,800,150])
 tiledlayout('horizontal',"Padding","loose",'TileSpacing','tight')
 for i=1:length(myFiles)
     load(myFiles(i).name);
     to_plot = variables(i,:);
     nexttile;
-    contourf(to_plot,params.sigma_h,Ns'.*params.N0./1e6,EdgeColor='None'); 
+    surface(to_plot,params.sigma_h,Ns'.*params.N0./1e6,EdgeColor='None'); 
     caxis([0 1]);
     xlabel(xlabels(i),'Interpreter','latex');
     xline(values_used(i), '--k',LineWidth=2);
     set(gca,'Ydir','Reverse');
-    ylim([0.5 1])
+    ylim([0.5 1]);
+    xlim([min(to_plot) max(to_plot)]);
+    
     if i == 1
-        ylabel('normalized distance from divide, $\sigma$','Interpreter','latex')
+        ylabel('$\sigma$','Interpreter','latex')
     else
         set(gca,'YTickLabel',[]);
     end
+
 end
-c = colorbar;
+c = colorbar();
+c.Layout.Tile = 'east';
 c.Label.String = 'effective pressure $N$ [MPa]';
 c.Label.Interpreter = 'latex';
 c.TickLabelInterpreter = 'latex';
+
+figure(Position=[250,550,800,100])
+tiledlayout('horizontal',"Padding","loose",'TileSpacing','tight')
+for i=1:length(myFiles)
+    load(myFiles(i).name);
+    to_plot = variables(i,:);
+    nexttile;
+    plot(to_plot,xgs.*params.x0./1000,'.k',MarkerSize=5);
+    xlabel(xlabels(i),'Interpreter','latex');
+    xline(values_used(i), '--k',LineWidth=2);
+    
+    ylim([0 710])
+    xlim([min(to_plot) max(to_plot)])
+    if i == 1
+        ylabel('$x_g$ [km]','Interpreter','latex')
+    else
+        set(gca,'YTickLabel',[]);
+    end
+
+end
 
 % tiledlayout('horizontal',"Padding","loose",'TileSpacing','tight');
 % load sens_C.mat

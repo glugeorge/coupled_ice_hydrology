@@ -25,7 +25,7 @@ params.year = 3600*24*365;
 %% Scaling params (coupled model equations solved in non-dim form)
 params.x0 = 100*10^3;
 params.h0 = 1000;
-params.Q0 = 10;
+params.Q0 = 1;
 
 params.psi0 = params.rho_w*params.g*params.h0/params.x0;
 params.M0 = params.Q0/params.x0;
@@ -45,10 +45,10 @@ params.r = params.rho_i/params.rho_w;
 params.transient = 0;
 
 %% Grid parameters - ice sheet
-params.Nx = 300;                    %number of grid points - 200
-params.N1 = 100;                    %number of grid points in coarse domain - 100
-params.Nh = 300;
-params.sigGZ = 0.95;                %extent of coarse grid (where GL is at sigma=1) - 0.97
+params.Nx = 600;                    %number of grid points - 200
+params.N1 = 200;                    %number of grid points in coarse domain - 100
+params.Nh = 600;
+params.sigGZ = 0.90;                %extent of coarse grid (where GL is at sigma=1) - 0.97
 sigma1=linspace(params.sigGZ/(params.N1+0.5), params.sigGZ, params.N1);
 sigma2=linspace(params.sigGZ, 1, params.Nx-params.N1+1);
 params.sigma = [sigma1, sigma2(2:end)]';    %grid points on velocity (includes GL, not ice divide)
@@ -72,14 +72,14 @@ Q = ones(params.Nh,1);
 N = ones(params.Nh,1);
 S = ones(params.Nh,1); 
 params.S_old = S;
-params.M = 0e-4/params.M0; % zero when using schoof bed
+params.M = 1e-5/params.M0; % zero when using schoof bed
 params.N_terminus = 0;
-params.accum = 0.1./params.year;
-xg = 100e3/params.x0;
+params.accum = 10./params.year;
+xg = 500e3/params.x0;
 hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
-h =  0.1*(1 - (1-hf).*params.sigma);
-u = 0.01*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
-params.Q_in = 10/params.Q0;
+h =  (1 - (1-hf).*params.sigma);
+u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
+params.Q_in = 0.01/params.Q0;
 
 params.h_old = h;
 params.xg_old = xg;
@@ -104,8 +104,8 @@ hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
 
 %% Now for remaining sensitivity 
 param_num = 100;
-accums = linspace(0,10,param_num);
-accums(1) = 0.1;
+accums = linspace(0.2,10,param_num);
+accums = fliplr(accums);
 Qs = nan.*ones(param_num,params.Nh);
 Ns = nan.*ones(param_num,params.Nh);
 Ss = nan.*ones(param_num,params.Nh);
@@ -130,7 +130,7 @@ for t=2:param_num
 %         params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
 % 
 %     end
-    params.accum = accums(t)/params.year;
+    params.accum = accums(t)./params.year;
     flf = @(QNShuxg) budd_flatbed_transient(QNShuxg,params);
     [QNShuxg_t,F,exitflag,output,JAC] = fsolve(flf,QNShuxg_t,options);
     t
@@ -167,4 +167,4 @@ subplot(3,1,2);surface(accums,params.sigma_h,N_dim',EdgeColor='None');colorbar;x
 subplot(3,1,3);surface(accums,params.sigma_h,S_dim',EdgeColor='None');colorbar;xlabel('time (yr)');ylabel('distance');title('Surface Area (m^2)');set(gca,'Ydir','Reverse')
 
 %% Saving values
-save('sens_accum.mat');
+save('sens_2accum1.mat');

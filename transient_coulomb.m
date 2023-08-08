@@ -18,7 +18,7 @@ params.year = 3600*24*365;
 %% Scaling params (coupled model equations solved in non-dim form)
 params.x0 = 100*10^3;
 params.h0 = 1000;
-params.Q0 = 100;
+params.Q0 = 1;
 
 params.psi0 = params.rho_w*params.g*params.h0/params.x0;
 params.M0 = params.Q0/params.x0;
@@ -41,10 +41,10 @@ params.r = params.rho_i/params.rho_w;
 params.transient = 0;
 
 %% Grid parameters - ice sheet
-params.Nx = 1200;                    %number of grid points - 200
-params.N1 = 200;                    %number of grid points in coarse domain - 100
-params.Nh = 1200;
-params.sigGZ = 0.80;                %extent of coarse grid (where GL is at sigma=1) - 0.97
+params.Nx = 700;                    %number of grid points - 200
+params.N1 = 100;                    %number of grid points in coarse domain - 100
+params.Nh = 1000;
+params.sigGZ = 0.85;                %extent of coarse grid (where GL is at sigma=1) - 0.97
 sigma1=linspace(params.sigGZ/(params.N1+0.5), params.sigGZ, params.N1);
 sigma2=linspace(params.sigGZ, 1, params.Nx-params.N1+1);
 params.sigma = [sigma1, sigma2(2:end)]';    %grid points on velocity (includes GL, not ice divide)
@@ -57,8 +57,8 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
-params.Nt =100;                    %number of time steps - normally 150
-params.end_year = 5; %normally 7500
+params.Nt =1000;                    %number of time steps - normally 150
+params.end_year = 50; %normally 7500
 
 params.dt = params.end_year*params.year/params.Nt;
 
@@ -70,18 +70,18 @@ params.ice_N_from_hydro = 1;
 
 %% Initial "steady state" conditions
 params.shear_scale = 1;
-Q = 0.1*ones(params.Nh,1);
+Q = 1*ones(params.Nh,1)./params.Q0;
 N = ones(params.Nh,1);
-S = 5/params.S0.*ones(params.Nh,1); 
+S = 3/params.S0.*ones(params.Nh,1); 
 params.S_old = S;
-params.M = 0e-4/params.M0; % zero when using schoof bed
+params.M = 1e-6/params.M0; % zero when using schoof bed
 params.N_terminus = 0;
 params.accum = 1./params.year;
 xg = 1500e3/params.x0; % Set high past sill for retreat
 hf = (-bed_schoof(xg.*params.x0,params)/params.h0)/params.r;
 h = 1 - (1-hf).*params.sigma;
 u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
-params.Q_in = 10/params.Q0;
+params.Q_in = 1/params.Q0;
 
 params.h_old = h;
 params.xg_old = xg;
@@ -188,7 +188,7 @@ results.Ss = Ss';
 %results.time_to_ss = time_to_ss; 
 
 %fname = strcat('base_run',num2str(params.A*1e25),'_c.mat');
-fname = 'coulomb_retreat_5yr.mat';
+fname = 'coulomb_retreat_50yr.mat';
 %fname = strcat('Nh_',num2str(params.Nh),'_coarse_',num2str(params.N1),'_fine_',num2str(params.Nx-params.N1),'.mat');
 save(fname,'results');
 

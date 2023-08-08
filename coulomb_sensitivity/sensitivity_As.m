@@ -25,7 +25,7 @@ params.year = 3600*24*365;
 %% Scaling params (coupled model equations solved in non-dim form)
 params.x0 = 100*10^3;
 params.h0 = 1000;
-params.Q0 = 10;
+params.Q0 = 1;
 
 params.psi0 = params.rho_w*params.g*params.h0/params.x0;
 params.M0 = params.Q0/params.x0;
@@ -75,14 +75,14 @@ Q = ones(params.Nh,1);
 N = ones(params.Nh,1);
 S = ones(params.Nh,1); 
 params.S_old = S;
-params.M = 0e-4/params.M0; % zero when using schoof bed
+params.M = 1e-5/params.M0; % zero when using schoof bed
 params.N_terminus = 0;
 params.accum = 1./params.year;
 xg = 200e3/params.x0;
 hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
 h =  (1 - (1-hf).*params.sigma);
 u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
-params.Q_in = 10/params.Q0;
+params.Q_in = 0.01./params.Q0;
 
 params.h_old = h;
 params.xg_old = xg;
@@ -115,6 +115,7 @@ Ss = nan.*ones(param_num,params.Nh);
 hs = nan.*ones(param_num,params.Nx);
 us = nan.*ones(param_num,params.Nx);
 xgs = nan.*ones(1,param_num);
+QNShuxg_t = QNShuxg_init;
 
 % Qs(1,:) = QNShuxg_t(1:params.Nh);
 % Ns(1,:) = QNShuxg_t(params.Nh+1:2*params.Nh);

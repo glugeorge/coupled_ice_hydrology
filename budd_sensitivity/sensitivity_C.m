@@ -16,15 +16,15 @@ params.n = 3;
 params.rho_i = 917;
 params.rho_w = 1028;
 params.g = 9.81;
-params.C = 1; 
+params.C = 10; 
 params.f = 0.07; % From Kingslake thesis
 params.K0 = 10^-24; % From Kingslake thesis  
 params.L = 3.3e5; % Kingslake thesis
 params.year = 3600*24*365;
 %% Scaling params (coupled model equations solved in non-dim form)
 params.x0 = 100*10^3;
-params.h0 = 100;
-params.Q0 = 10;
+params.h0 = 1000;
+params.Q0 = 1;
 
 params.psi0 = params.rho_w*params.g*params.h0/params.x0;
 params.M0 = params.Q0/params.x0;
@@ -71,14 +71,14 @@ Q = ones(params.Nh,1);
 N = ones(params.Nh,1);
 S = ones(params.Nh,1); 
 params.S_old = S;
-params.M = 0e-4/params.M0; % zero when using schoof bed
+params.M = 1e-5/params.M0; % zero when using schoof bed
 params.N_terminus = 0;
 params.accum = 1./params.year;
-xg = 200e3/params.x0;
+xg = 500e3/params.x0;
 hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
 h =  1 - (1-hf).*params.sigma;
-u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3; 
-params.Q_in = 10/params.Q0;
+u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3; 
+params.Q_in = 0.01/params.Q0;
 
 params.h_old = h;
 params.xg_old = xg;
@@ -103,7 +103,7 @@ hf = (-bed(xg.*params.x0,params)/params.h0)/(params.r);
 
 %% Now for remaining sensitivity 
 param_num = 100;
-C_arr = linspace(1,15,param_num);
+C_arr = flip(linspace(3,10,param_num));
 u0s = (params.rho_i*params.g*params.h0^2./(params.x0*params.N0.*C_arr)).^params.n;
 Qs = nan.*ones(param_num,params.Nh);
 Ns = nan.*ones(param_num,params.Nh);
