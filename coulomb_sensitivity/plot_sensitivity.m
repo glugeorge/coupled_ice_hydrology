@@ -1,9 +1,10 @@
 %% Plotting
-close all; clear;
+%close all; 
+clear;
 set(groot,'defaultAxesTickLabelInterpreter','latex'); 
 myFiles = dir(fullfile('*.mat'));
 % first load variables to plot
-fig = figure(Position=[250,550,800,150])
+fig = figure(Name='Figure 2g-l',Position=[250,550,800,150],NumberTitle='off')
 h = axes(fig);
 tiledlayout('horizontal','TileSpacing','tight')
 for i=1:length(myFiles)
@@ -42,7 +43,7 @@ c.Label.String = 'ice thickness $h$ [km]';
 c.Label.Interpreter = 'latex';
 c.TickLabelInterpreter = 'latex';
 
-figure(Position=[250,550,800,150])
+figure(Name='Figure 2m-r',Position=[250,550,800,150],NumberTitle='off')
 tiledlayout('horizontal',"Padding","loose",'TileSpacing','tight')
 for i=1:length(myFiles)
     load(myFiles(i).name);
@@ -69,7 +70,7 @@ c.Label.String = 'effective pressure $N$ [MPa]';
 c.Label.Interpreter = 'latex';
 c.TickLabelInterpreter = 'latex';
 
-figure(Position=[250,550,800,100])
+figure(Name='Figure 2a-f',Position=[250,550,800,150],NumberTitle='off')
 tiledlayout('horizontal',"Padding","loose",'TileSpacing','tight')
 for i=1:length(myFiles)
     load(myFiles(i).name);

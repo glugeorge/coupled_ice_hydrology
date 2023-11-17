@@ -1,0 +1,142 @@
+%% Plotting
+%close all; 
+clear;
+set(groot,'defaultAxesTickLabelInterpreter','latex'); 
+myFiles = dir(fullfile('*.mat'));
+% first load variables to plot
+fig = figure(Name='Figure 3f-j',Position=[250,550,700,150],NumberTitle='off')
+h = axes(fig);
+tiledlayout('horizontal','TileSpacing','tight')
+for i=1:length(myFiles)
+    load(myFiles(i).name);
+end
+variables = [A_arr*1e25; accums; M_ins*1e4; Q_ins; C_arr];
+xlabels = ["$A$ [$\times10^{-25}$ s$^{-1}$ Pa$^{-3}$]",...
+            "$a$ [m yr$^{-1}$]",...
+            "$M$ [$\times10^{-4}$ m$^2$ s$^{-1}$]",...
+            "$Q_{\mathrm{in}}$ [m$^3$ s$^{-1}$]",...
+            "$C_B$"]; 
+titles = [""];
+values_used = [2.9,1,1e-5,0.01,7.6]
+for i=1:length(myFiles)
+    load(myFiles(i).name);
+    to_plot = variables(i,:);
+    nexttile;
+    surface(to_plot,params.sigma_elem,hs'.*params.h0/1000,EdgeColor='None'); 
+    caxis([0 3]);
+    xlabel(xlabels(i),'Interpreter','latex');
+    set(gca,'Ydir','Reverse');
+    xline(values_used(i), '--k',LineWidth=2);
+    ylim([0.5 1])
+    xlim([min(to_plot) max(to_plot)])
+
+    if i == 1
+        ylabel('$\sigma$','Interpreter','latex')
+    else
+        set(gca,'YTickLabel',[]);
+    end
+end
+c = colorbar();
+c.Layout.Tile = 'east';
+c.Label.String = 'ice thickness $h$ [km]';
+c.Label.Interpreter = 'latex';
+c.TickLabelInterpreter = 'latex';
+
+figure(Name='Figure 3k-o',Position=[250,550,700,150],NumberTitle='off')
+tiledlayout('horizontal',"Padding","loose",'TileSpacing','tight')
+for i=1:length(myFiles)
+    load(myFiles(i).name);
+    to_plot = variables(i,:);
+    nexttile;
+    surface(to_plot,params.sigma_h,Ns'.*params.N0./1e6,EdgeColor='None'); 
+    caxis([0 1]);
+    xlabel(xlabels(i),'Interpreter','latex');
+    xline(values_used(i), '--k',LineWidth=2);
+    set(gca,'Ydir','Reverse');
+    ylim([0.5 1]);
+    xlim([min(to_plot) max(to_plot)])
+    
+    if i == 1
+        ylabel('$\sigma$','Interpreter','latex')
+    else
+        set(gca,'YTickLabel',[]);
+    end
+
+end
+c = colorbar();
+c.Layout.Tile = 'east';
+c.Label.String = 'effective pressure $N$ [MPa]';
+c.Label.Interpreter = 'latex';
+c.TickLabelInterpreter = 'latex';
+
+figure(Name='Figure 3a-e',Position=[250,550,700,150],NumberTitle='off')
+tiledlayout('horizontal',"Padding","loose",'TileSpacing','tight')
+for i=1:length(myFiles)
+    load(myFiles(i).name);
+    to_plot = variables(i,:);
+    nexttile;
+    plot(to_plot,xgs.*params.x0./1000,'.k',MarkerSize=5);
+    xlabel(xlabels(i),'Interpreter','latex');
+    xline(values_used(i), '--k',LineWidth=2);
+    
+    ylim([0 710])
+    xlim([min(to_plot) max(to_plot)])
+    if i == 1
+        ylabel('$x_g$ [km]','Interpreter','latex')
+    else
+        set(gca,'YTickLabel',[]);
+    end
+
+end
+
+% tiledlayout('horizontal',"Padding","loose",'TileSpacing','tight');
+% load sens_C.mat
+% to_plot = C_arr;%As_ar*1e21; %Q_ins%M_ins*1e4;%accums;%A_arr*1e25;
+%x_label = '$A$ [$\times10^{-25}$ s$^{-1}$ Pa$^{-3}$]';
+%x_label = '$a$ [m yr$^{-1}$]';
+%x_label = '$M$ [$\times10^{-4}$ m$^2$ s$^{-1}$]';
+%x_label = '$Q_{\mathrm{in}}$ [m$^3$ s$^{-1}$]';
+%x_label = '$A_s$ [$\times10^{-21}$ m s$^{-1}$ Pa$^{-3}$]';
+% x_label = '$C_C$';
+% 
+% a1 = nexttile;
+% contourf(to_plot,params.sigma_elem,hs'.*params.h0); hold on;
+% caxis([0 2500]);
+% 
+% set(gca,'Ydir','Reverse');
+% ylim([0.5 1]);
+% xlabel(x_label,Interpreter='latex');
+% ylabel('Normalized distance from divide',Interpreter='latex');
+% title('Ice Thickness',Interpreter='latex')
+
+% a2 = nexttile;
+% contourf(to_plot,params.sigma_h,Ns'.*params.N0./1e6,EdgeColor='None',FaceAlpha=0.75);hold on;
+% [C,h]=contour(to_plot,params.sigma_h,Ns'.*params.N0./1e6,"LabelFormat","%0.1f MPa",'LabelSpacing',200);
+% %clabel(C,h,[0.5 0.6 0.7 0.8 0.9 1]);
+% caxis([0 1]);
+% 
+% ylim([0.5 1]);
+% xlabel(x_label,Interpreter='latex');
+% ylabel('Normalized distance from divide',Interpreter='latex');
+% title('Effective Pressure',Interpreter='latex')
+% set(gca,'Ydir','Reverse');
+% linkaxes([a1,a2],'x');
+
+%% accum
+% load sens_accum.mat
+% a1 = nexttile;
+% contourf(accums,params.sigma_elem,hs'.*params.h0,EdgeColor='None',FaceAlpha=0.75); hold on;
+% [C,h]=contour(A_arr,params.sigma_elem,hs'.*params.h0,"LabelFormat","%d m");
+% clabel(C,h);
+% 
+% set(gca,'Ydir','Reverse');
+% set(gca,'XTickLabel','')
+% ylim([0.5 1]);
+% a2 = nexttile;
+% contourf(accums,params.sigma_h,Ns'.*params.N0./1e6,EdgeColor='None',FaceAlpha=0.75);hold on;
+% [C,h]=contour(A_arr,params.sigma_h,Ns'.*params.N0./1e6,"LabelFormat","%0.1f MPa");
+% clabel(C,h,[0.5 0.8 1]);
+% 
+% ylim([0.5 1]);
+% %set(gca,'Ydir','Reverse');
+% linkaxes([a1,a2],'x');

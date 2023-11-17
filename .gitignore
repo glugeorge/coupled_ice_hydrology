@@ -2,11 +2,9 @@
 *.asv
 .DS_Store
 results/*
-results_smallQin/*
-coulomb_sensitivity/*
-budd_sensitivity/*
+results_deprecated/*
+results_smallC/*
 utils_deprecated/*
 .DS_Store
 stretching_N/*
-*.mat
 *.svg
