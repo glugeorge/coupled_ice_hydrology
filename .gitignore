@@ -8,3 +8,4 @@ utils_deprecated/*
 .DS_Store
 stretching_N/*
 *.svg
+*.mat

@@ -1,4 +1,4 @@
-function F = schoof_combined_hydro_ice_eqns(QNShuxg,params)
+function F = ice_hydro_equations_coulomb(QNShuxg,params,bed_func)
     % unpack variables
     M = params.M;
     Q_in = params.Q_in;
@@ -11,7 +11,7 @@ function F = schoof_combined_hydro_ice_eqns(QNShuxg,params)
     h = QNShuxg(ice_start+1:ice_start + Nx);
     u = QNShuxg(ice_start + Nx+1:ice_start + 2*Nx);
     xg = QNShuxg(ice_start + 2*Nx+1);
-    hf = (-bed_schoof(xg.*params.x0,params)/params.h0)/(params.r);
+    hf = (-bed_func(xg.*params.x0,params)/params.h0)/(params.r);
 
     %grid params unpack
     dt = params.dt/params.t0;
@@ -21,8 +21,8 @@ function F = schoof_combined_hydro_ice_eqns(QNShuxg,params)
     N1 = params.N1;
     sigma = params.sigma;
     sigma_elem = params.sigma_elem;
-    b = -bed_schoof(xg.*sigma.*params.x0,params)/params.h0;
-    dbdx = gradient(bed_schoof(xg.*params.sigma_h.*params.x0,params))./gradient(params.sigma_h.*params.x0*xg);
+    b = -bed_func(xg.*sigma.*params.x0,params)/params.h0;
+    dbdx = gradient(bed_func(xg.*params.sigma_h.*params.x0,params))./gradient(params.sigma_h.*params.x0*xg);
     Fh = zeros(Nx,1);
     Fu = zeros(Nx,1);
     
@@ -84,7 +84,7 @@ function F = schoof_combined_hydro_ice_eqns(QNShuxg,params)
     % S
     fs(1) = abs(Q(1)).^3./(S(1).^(8/3)) - ... 
                         S(1).*N(1).^3 + ...
-                        (ss.*params.sigma_h(1)*(xg-xg_old)/dth - params.beta.*u_ice_interp(1)).*(S(2)-S(1))./(xg*params.dsigma_h(1)) - ...
+                        0-...%(ss.*params.sigma_h(1)*(xg-xg_old)/dth - params.beta.*u_ice_interp(1)).*(S(2)-S(1))./(xg*params.dsigma_h(1)) - ...
                         ss.*(S(1)-params.S_old(1))./dth; % one sided difference
     fs(2:Nh-1)= abs(Q(2:Nh-1)).^3./(S(2:Nh-1).^(8/3)) - ... 
                         S(2:Nh-1).*N(2:Nh-1).^3 + ...
@@ -126,7 +126,7 @@ function F = schoof_combined_hydro_ice_eqns(QNShuxg,params)
                   0.5.*(h(2:Nx-1)+h(3:Nx)).*(h(3:Nx)-b(3:Nx)-h(2:Nx-1)+b(2:Nx-1))./(xg.*ds(2:Nx-1));
     Fu(N1)     = (u(N1+1)-u(N1))/ds(N1) - (u(N1)-u(N1-1))/ds(N1-1);
     Fu(Nx)     = alpha.*(1./(xg.*ds(Nx-1)).^(1/nglen)).*...
-                 (abs(u(Nx)-u(Nx-1)).^((1/nglen)-1)).*(u(Nx)-u(Nx-1)) - 0.5*(1-params.r)*hf;
+                 (abs(u(Nx)-u(Nx-1)).^((1/nglen)-1)).*(u(Nx)-u(Nx-1)) - params.Cf.*0.5*(1-params.r)*hf;
              
     Fxg        = 3*h(Nx) - h(Nx-1) - 2*hf; 
 
