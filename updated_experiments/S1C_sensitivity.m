@@ -58,14 +58,24 @@ for i=1:length(a_vals)
                 k
                 l
                 init = squeeze(inits(i,j,k,l,:));
-                [N_pos,max_h,xg,next_init] = solve_steady_state(a_vals(i),As_vals(j),A_vals(k),M_vals(l),params,init);
+                [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a_vals(i),As_vals(j),A_vals(k),M_vals(l),params,init);
+                if exitflag < 1
+                    [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a_vals(i),As_vals(j),A_vals(k),M_vals(l),params,init0);
+                    if exitflag < 1
+                        N_pos = NaN;
+                        max_h = NaN;
+                        xg = NaN;
+                        next_init = init0;
+                    end
+                    
+                end                    
                 N_pos_arr(i,j,k,l) = N_pos;
                 max_h_arr(i,j,k,l) = max_h;
                 xg_arr(i,j,k,l) = xg;
-                inits(i+1,j,k,l,:) = init0;
-                inits(i,j+1,k,l,:) = init0;
-                inits(i,j,k+1,l,:) = init0;
-                inits(i,j,k,l+1,:) = init0;
+                inits(i+1,j,k,l,:) = next_init;
+                inits(i,j+1,k,l,:) = next_init;
+                inits(i,j,k+1,l,:) = next_init;
+                inits(i,j,k,l+1,:) = next_init;
             end
 
         end
@@ -73,23 +83,26 @@ for i=1:length(a_vals)
 
 end
 
+%% Save values
+save("S1C_sensitivity.mat");
+
 %% Plotting
 fig = figure(1);
 t = tiledlayout(length(a_vals),length(As_vals),'TileSpacing','Compact');
 for i=1:length(a_vals)
     for j=1:length(As_vals)
         nexttile;
-        pcolor(A_vals,M_vals,squeeze(N_pos_arr(i,j,:,:))');
+        surf(A_vals,M_vals,squeeze(N_pos_arr(i,j,:,:))');
         set(gca, 'XScale', 'log');
         set(gca, 'YScale', 'log');
-        clim([0.95,1]);
+        clim([0.9,1]);
         title(['a=',num2str(a_vals(i)),', A_S=',int2str(As_vals(j)*1e25)])
     end
 
 end
 cb = colorbar(); 
 cb.Layout.Tile = 'east'; % Assign colorbar location
-
+%%
 fig = figure(2);
 t = tiledlayout(length(a_vals),length(As_vals),'TileSpacing','Compact');
 for i=1:length(a_vals)
@@ -108,7 +121,7 @@ cb.Layout.Tile = 'east'; % Assign colorbar location
 
 
 %% Solve function
-function [N_pos,max_h,xg,next_init] = solve_steady_state(a,As,A,M,params_init,init)
+function [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a,As,A,M,params_init,init)
 bed_func = @bed_flat;
 params = params_init;
 params.b0 = -100;           %bed topo at x=0
@@ -203,6 +216,7 @@ h = QNShuxg_init(params.ice_start+1:params.ice_start+ params.Nx);
 u = QNShuxg_init(params.ice_start + params.Nx+1:params.ice_start+2*params.Nx);
 xg = QNShuxg_init(params.ice_start+2*params.Nx+1);
 hf = (-bed_func(xg.*params.x0,params)/params.h0)/(params.r);
+
 [N_max,I] = max(N);
 N_pos = params.sigma_h(I);
 max_h = max(h);
