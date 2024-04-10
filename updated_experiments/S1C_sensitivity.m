@@ -1,21 +1,20 @@
 clear; close all;
 
 %% Define parameter ranges
-A_vals = logspace(-26,-24,4);
-M_vals = logspace(-6,-4,6);
+A_vals = logspace(log10(3.9e-26),log10(4.2e-25),4);
+M_vals = logspace(-6,-4,4);
 a_vals = linspace(0.1,0.5,4);
 
-% assuming basal shear stress on order of 10^5-10^6 Pa, u ranges of 10-1000m/a
-% As ~ 1e-25 to 1e-20
-As_vals = logspace(-25,-20,4);
+% C values
+C_vals = linspace(0.1,0.5,4);
 
-N_pos_arr = zeros(length(a_vals),length(As_vals),length(A_vals),length(M_vals));
-max_h_arr = zeros(length(a_vals),length(As_vals),length(A_vals),length(M_vals));
-xg_arr = zeros(length(a_vals),length(As_vals),length(A_vals),length(M_vals));
+N_pos_arr = zeros(length(a_vals),length(C_vals),length(A_vals),length(M_vals));
+max_h_arr = zeros(length(a_vals),length(C_vals),length(A_vals),length(M_vals));
+xg_arr = zeros(length(a_vals),length(C_vals),length(A_vals),length(M_vals));
 
 
 %% Grid parameters - ice sheet
-params.x0 = 100*10^3;
+params.x0 = 1000*10^3;
 params.h0 = 1000;
 params.Q0 = 1;
 params.Nx = 700;                    %number of grid points - 200
@@ -39,15 +38,15 @@ xg = 500e3/params.x0; % Set high past sill for retreat
 u = 0.1*(params.sigma_elem.^(1/3))+0.01; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
 
 
-
+init_xgs = [10 3 1 0.5];
 init0 = [Q;N;S;h;u;xg];
-inits = zeros(length(a_vals)+1,length(As_vals)+1,length(A_vals)+1,length(M_vals)+1,length(init0));
+inits = zeros(length(a_vals)+1,length(C_vals)+1,length(A_vals)+1,length(M_vals)+1,length(init0));
 inits(1,1,1,1,:) = init0;
 
 %% Iterate
 for i=1:length(a_vals)
     
-    for j=1:length(As_vals)
+    for j=1:length(C_vals)
         
         for k=1:length(A_vals)
             
@@ -58,9 +57,10 @@ for i=1:length(a_vals)
                 k
                 l
                 init = squeeze(inits(i,j,k,l,:));
-                [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a_vals(i),As_vals(j),A_vals(k),M_vals(l),params,init);
+                [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a_vals(i),C_vals(j),A_vals(k),M_vals(l),params,init);
                 if exitflag < 1
-                    [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a_vals(i),As_vals(j),A_vals(k),M_vals(l),params,init0);
+                    init0 = [Q;N;S;h;u;init_xgs(l)];
+                    [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a_vals(i),C_vals(j),A_vals(k),M_vals(l),params,init0);
                     if exitflag < 1
                         N_pos = NaN;
                         max_h = NaN;
@@ -88,15 +88,15 @@ save("S1C_sensitivity_highres.mat");
 
 %% Plotting
 fig = figure(1);
-t = tiledlayout(length(a_vals),length(As_vals),'TileSpacing','Compact');
+t = tiledlayout(length(a_vals),length(C_vals),'TileSpacing','Compact');
 for i=1:length(a_vals)
-    for j=1:length(As_vals)
+    for j=1:length(C_vals)
         nexttile;
         heatmap(A_vals,M_vals,squeeze(N_pos_arr(i,j,:,:))','ColorbarVisible','off');
         %set(gca, 'XScale', 'log');
         %set(gca, 'YScale', 'log');
         %clim([0.9,1]);
-        title(['a=',num2str(a_vals(i)),', A_S=',int2str(As_vals(j)*1e25)])
+        title(['a=',num2str(a_vals(i)),', C=',num2str(C_vals(j))])
     end
 
 end
@@ -104,20 +104,20 @@ end
 %cb.Layout.Tile = 'east'; % Assign colorbar location
 %%
 fig = figure(2);
-t = tiledlayout(length(a_vals),length(As_vals),'TileSpacing','Compact');
+t = tiledlayout(length(a_vals),length(C_vals),'TileSpacing','Compact');
 for i=1:length(a_vals)
-    for j=1:length(As_vals)
+    for j=1:length(C_vals)
         nexttile;
         heatmap(A_vals,M_vals,squeeze(xg_arr(i,j,:,:))','ColorbarVisible','off');
         
         %clim([0.95,1]);
-        title(['a=',num2str(a_vals(i)),', A_S=',int2str(As_vals(j)*1e25)])
+        title(['a=',num2str(a_vals(i)),', C=',num2str(C_vals(j)*1e25)])
     end
 
 end
 
 %% Solve function
-function [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a,As,A,M,params_init,init)
+function [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a,C,A,M,params_init,init)
 bed_func = @bed_flat;
 params = params_init;
 params.b0 = -100;           %bed topo at x=0
@@ -133,8 +133,8 @@ params.n = 3;
 params.rho_i = 917;
 params.rho_w = 1028;
 params.g = 9.81;
-params.C = 0.5; 
-params.As = As;
+params.C = C; 
+params.As = 2.26e-21;
 params.f = 0.07; % From Kingslake thesis
 params.K0 = 10^-24; % From Kingslake thesis  
 params.L = 3.3e5; % Kingslake thesis
