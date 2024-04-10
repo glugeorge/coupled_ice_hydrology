@@ -2,7 +2,7 @@ clear; close all;
 
 %% Define parameter ranges
 A_vals = logspace(-26,-24,4);
-M_vals = logspace(-6,-4,4);
+M_vals = logspace(-6,-4,6);
 a_vals = linspace(0.1,0.5,4);
 
 % assuming basal shear stress on order of 10^5-10^6 Pa, u ranges of 10-1000m/a
@@ -18,10 +18,10 @@ xg_arr = zeros(length(a_vals),length(As_vals),length(A_vals),length(M_vals));
 params.x0 = 100*10^3;
 params.h0 = 1000;
 params.Q0 = 1;
-params.Nx = 300;                    %number of grid points - 200
+params.Nx = 700;                    %number of grid points - 200
 params.N1 = 100;                    %number of grid points in coarse domain - 100
-params.Nh = 500;
-params.sigGZ = 0.95;                %extent of coarse grid (where GL is at sigma=1) - 0.97
+params.Nh = 1000;
+params.sigGZ = 0.85;                %extent of coarse grid (where GL is at sigma=1) - 0.97
 sigma1=linspace(params.sigGZ/(params.N1+0.5), params.sigGZ, params.N1);
 sigma2=linspace(params.sigGZ, 1, params.Nx-params.N1+1);
 params.sigma = [sigma1, sigma2(2:end)]';    %grid points on velocity (includes GL, not ice divide)
@@ -35,7 +35,7 @@ Q = ones(params.Nh,1);
 N = ones(params.Nh,1);
 S = ones(params.Nh,1); 
 h = ones(length(params.sigma_elem),1);
-xg = 1000e3/params.x0; % Set high past sill for retreat
+xg = 500e3/params.x0; % Set high past sill for retreat
 u = 0.1*(params.sigma_elem.^(1/3))+0.01; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
 
 
@@ -84,7 +84,7 @@ for i=1:length(a_vals)
 end
 
 %% Save values
-save("S1C_sensitivity.mat");
+save("S1C_sensitivity_highres.mat");
 
 %% Plotting
 fig = figure(1);
@@ -92,33 +92,29 @@ t = tiledlayout(length(a_vals),length(As_vals),'TileSpacing','Compact');
 for i=1:length(a_vals)
     for j=1:length(As_vals)
         nexttile;
-        surf(A_vals,M_vals,squeeze(N_pos_arr(i,j,:,:))');
-        set(gca, 'XScale', 'log');
-        set(gca, 'YScale', 'log');
-        clim([0.9,1]);
+        heatmap(A_vals,M_vals,squeeze(N_pos_arr(i,j,:,:))','ColorbarVisible','off');
+        %set(gca, 'XScale', 'log');
+        %set(gca, 'YScale', 'log');
+        %clim([0.9,1]);
         title(['a=',num2str(a_vals(i)),', A_S=',int2str(As_vals(j)*1e25)])
     end
 
 end
-cb = colorbar(); 
-cb.Layout.Tile = 'east'; % Assign colorbar location
+%cb = colorbar(); 
+%cb.Layout.Tile = 'east'; % Assign colorbar location
 %%
 fig = figure(2);
 t = tiledlayout(length(a_vals),length(As_vals),'TileSpacing','Compact');
 for i=1:length(a_vals)
     for j=1:length(As_vals)
         nexttile;
-        pcolor(A_vals,M_vals,squeeze(xg_arr(i,j,:,:))');
-        set(gca, 'XScale', 'log');
-        set(gca, 'YScale', 'log');
+        heatmap(A_vals,M_vals,squeeze(xg_arr(i,j,:,:))','ColorbarVisible','off');
+        
         %clim([0.95,1]);
         title(['a=',num2str(a_vals(i)),', A_S=',int2str(As_vals(j)*1e25)])
     end
 
 end
-cb = colorbar(); 
-cb.Layout.Tile = 'east'; % Assign colorbar location
-
 
 %% Solve function
 function [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a,As,A,M,params_init,init)
