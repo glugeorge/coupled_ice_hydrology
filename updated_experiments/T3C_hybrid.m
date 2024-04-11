@@ -15,7 +15,7 @@ xg = results.init_cond(params.ice_start+2*params.Nx+1);
 
 h_interp = interp1(params.sigma_elem,h.*params.h0,params.sigma,'linear','extrap');
 b = -bed_func(xg.*params.sigma.*params.x0,params)/params.h0;
-N_simple = (params.g.*params.rho_i.*h_interp(1:end) - max(params.rho_w.*params.g.*params.h0.*b(1:end),zeros(params.Nx,1)))./params.N0;
+N_simple = (params.g.*params.rho_i.*h_interp(1:end)) ./params.N0;% - max(params.rho_w.*params.g.*params.h0.*b(1:end),zeros(params.Nx,1)))./params.N0;
 params.N_scale = N_interp./N_simple;
 h_scaled = h*results.params.h0;
 u_scaled = u*results.params.u0;
@@ -157,7 +157,7 @@ function F = flowline_eqns(huxg,params,bed_func)
     xg_old = params.xg_old;
     
     h_interp = interp1(sigma_elem,h.*params.h0,sigma,'linear','extrap');
-    N  = params.N_scale.*(params.g.*params.rho_i.*h_interp(1:end) - max(params.rho_w.*params.g.*params.h0.*b(1:end),zeros(Nx,1)))./params.N0;
+    N  = params.N_scale.*(params.g.*params.rho_i.*h_interp(1:end)) ./params.N0;%- max(params.rho_w.*params.g.*params.h0.*b(1:end),zeros(Nx,1)))./params.N0;
     
 
     %thickness - stays same

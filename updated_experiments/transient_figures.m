@@ -8,8 +8,7 @@ sigma_elem_simpleN = params_simpleN.sigma_elem;
 b = -bed_schoof(results_hybridN.xgs.*sigma_simpleN.*params_simpleN.x0);
 h_interp = interp1(sigma_elem_simpleN,results_hybridN.hs.*params_simpleN.h0,sigma_simpleN,'linear','extrap');
 
-N_simpleN = params_simpleN.g.*params_simpleN.rho_i.*h_interp - ...
-    max(params_simpleN.rho_w.*params_simpleN.g.*b,zeros(300,1000));
+N_simpleN = params_simpleN.g.*params_simpleN.rho_i.*h_interp;
 % Plotting one slice of this plot(sigma_simpleN,N_simpleN(:,1)) ->
 % discontinuity when bed elevation greater than sea level.
 

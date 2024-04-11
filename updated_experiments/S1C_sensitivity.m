@@ -38,7 +38,6 @@ xg = 500e3/params.x0; % Set high past sill for retreat
 u = 0.1*(params.sigma_elem.^(1/3))+0.01; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
 
 
-init_xgs = [10 3 1 0.5];
 init0 = [Q;N;S;h;u;xg];
 inits = zeros(length(a_vals)+1,length(C_vals)+1,length(A_vals)+1,length(M_vals)+1,length(init0));
 inits(1,1,1,1,:) = init0;
@@ -59,7 +58,6 @@ for i=1:length(a_vals)
                 init = squeeze(inits(i,j,k,l,:));
                 [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a_vals(i),C_vals(j),A_vals(k),M_vals(l),params,init);
                 if exitflag < 1
-                    init0 = [Q;N;S;h;u;init_xgs(l)];
                     [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a_vals(i),C_vals(j),A_vals(k),M_vals(l),params,init0);
                     if exitflag < 1
                         N_pos = NaN;
