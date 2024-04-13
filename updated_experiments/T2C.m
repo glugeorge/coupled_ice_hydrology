@@ -12,8 +12,6 @@ h = results.init_cond(params.ice_start+1:params.ice_start+ params.Nx);
 u = results.init_cond(params.ice_start + params.Nx+1:params.ice_start+2*params.Nx);
 xg = results.init_cond(params.ice_start+2*params.Nx+1);
 
-params.A = 1e-25;
-params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
 params.fixed_N_grid = params.sigma_h*xg; 
 params.N_scaled = N*params.N0;
 h_scaled = h*results.params.h0;
@@ -60,8 +58,8 @@ hf = (-bed_func(xg.*params.x0,params)/params.h0)/(params.r);
 
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
-params.Nt =5000;                    %number of time steps - normally 150
-params.end_year = 5000; %normally 7500
+params.Nt =3000;                    %number of time steps - normally 150
+params.end_year = 3000; %normally 7500
 
 params.dt = params.end_year*params.year/params.Nt;
 
@@ -78,7 +76,7 @@ xgs(1) = huxg_t(end);
 params.transient = 1;
 time_to_ss = 0;
 C_fs = linspace(0.4,1,10);
-for t=1:params.Nt
+for t=2:params.Nt
     if t <= 10
         params.Cf = C_fs(t);
     else

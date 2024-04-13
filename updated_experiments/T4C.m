@@ -4,7 +4,7 @@ clc
 bed_func = @bed_schoof;
 
 %% Physical parameters
-load coulomb_retreat.mat
+load coulomb_retreat_S.mat
 params = results.params;
 bed_func = @bed_schoof;
 N_coupled = results.init_cond(params.Nh+1:2*params.Nh);
@@ -15,7 +15,7 @@ xg = results.init_cond(params.ice_start+2*params.Nx+1);
 
 h_interp = interp1(params.sigma_elem,h.*params.h0,params.sigma,'linear','extrap');
 b = -bed_func(xg.*params.sigma.*params.x0,params)/params.h0;
-N_simple = (params.g.*params.rho_i.*h_interp(1:end) - max(params.rho_w.*params.g.*params.h0.*b(1:end),zeros(params.Nx,1)))./params.N0;
+N_simple = (params.g.*params.rho_i.*h_interp(1:end)) ./params.N0;% - max(params.rho_w.*params.g.*params.h0.*b(1:end),zeros(params.Nx,1)))./params.N0;
 params.N_scale = N_interp./N_simple;
 h_scaled = h*results.params.h0;
 u_scaled = u*results.params.u0;
@@ -91,7 +91,7 @@ end
 
 
 %% Plot transient solution
-load coulomb_retreat.mat
+load coulomb_retreat_S.mat
 figure();
 ts = linspace(0,params.end_year,params.Nt);
 subplot(3,1,1);plot(ts,xgs.*params.x0./1e3,'linewidth',3);xlabel('time (yr)');ylabel('x_g');hold on;plot(results.ts,results.xgs.*params.x0./1e3,'linewidth',3)
@@ -109,18 +109,18 @@ hold on;
 plot(params.fixed_N_grid*params.x0/1000,params.N_scaled);ylabel('N (Pa)');xlabel('distance from divide (km)');
 
 %% Save results
-results_connected_N.params = params;
-results_connected_N.init_cond = huxg_init;
+results_fracN.params = params;
+results_fracN.init_cond = huxg_init;
 %results_constN.steady_state = huxg_final;
-results_connected_N.xgs = xgs;
-results_connected_N.ts = ts;
-results_connected_N.hs = hs';
-results_connected_N.us = us';
+results_fracN.xgs = xgs;
+results_fracN.ts = ts;
+results_fracN.hs = hs';
+results_fracN.us = us';
 %results_constN.xg_f = xg_f;
 
 %results_constN.time_to_ss = time_to_ss; 
-fname = 'connected_N_coulomb.mat';
-save(fname,'results_connected_N');
+fname = 'frac_N_coulomb.mat';
+save(fname,'results_fracN');
 
 %% Implicit system of equations function (using discretization scheme from Schoof 2007)
 function F = flowline_eqns(huxg,params,bed_func)
@@ -157,7 +157,7 @@ function F = flowline_eqns(huxg,params,bed_func)
     xg_old = params.xg_old;
     
     h_interp = interp1(sigma_elem,h.*params.h0,sigma,'linear','extrap');
-    N  = params.N_scale.*(params.g.*params.rho_i.*h_interp(1:end) - max(params.rho_w.*params.g.*params.h0.*b(1:end),zeros(Nx,1)))./params.N0;
+    N  = params.N_scale.*(params.g.*params.rho_i.*h_interp(1:end)) ./params.N0;%- max(params.rho_w.*params.g.*params.h0.*b(1:end),zeros(Nx,1)))./params.N0;
     
 
     %thickness - stays same

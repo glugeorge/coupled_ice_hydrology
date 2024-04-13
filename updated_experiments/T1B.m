@@ -6,8 +6,7 @@ params.n = 3;
 params.rho_i = 917;
 params.rho_w = 1028;
 params.g = 9.81;
-params.C = 0.2; % base 0.2
-params.As = 2.26e-21; % Calculated 
+params.C = 7.624; 
 params.f = 0.07; % From Kingslake thesis
 params.K0 = 10^-24; % From Kingslake thesis  
 params.L = 3.3e5; % Kingslake thesis
@@ -25,13 +24,10 @@ params.S0 = (params.f*params.rho_w*params.g*params.Q0^2/params.psi0)^(3/8);
 params.th0 = params.rho_i*params.S0/params.m0;
 params.N0 = (params.K0*params.th0)^(-1/3);
 params.delta = params.N0/(params.x0*params.psi0);
-%params.u0 = (rho_i*g*params.h0^2/(C*params.N0*params.x0))^n;
-params.u0 = params.As*(params.C*params.N0)^params.n;
+params.u0 = (params.rho_i*params.g*params.h0^2/(params.x0*params.N0*params.C))^params.n;
 params.t0 = params.x0/params.u0;
 params.a0 = params.h0/params.t0;
 params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
-%gamma = As*(C*N0)^n;
-params.gamma = (params.C*params.N0*params.x0)/(params.rho_i*params.g*params.h0^2);
 params.beta = params.th0/params.t0;
 params.r = params.rho_i/params.rho_w;
 
@@ -89,7 +85,7 @@ sige_old = params.sigma_elem;
 QNShuxg0 = [Q;N;S;h;u;xg];
 
 options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
-flf = @(QNShuxg) ice_hydro_equations_coulomb(QNShuxg,params,bed_func);
+flf = @(QNShuxg) ice_hydro_equations_budd(QNShuxg,params,bed_func);
 
 [QNShuxg_init,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
 
@@ -144,7 +140,7 @@ for t=2:params.Nt
     else
         params.Cf = C_fs(10);
     end
-    flf = @(QNShuxg) ice_hydro_equations_coulomb(QNShuxg,params,bed_func);
+    flf = @(QNShuxg) ice_hydro_equations_budd(QNShuxg,params,bed_func);
     [QNShuxg_t,F,exitflag,output,JAC] = fsolve(flf,QNShuxg_t,options);
     t
     Qs(t,:) = QNShuxg_t(1:params.Nh);
@@ -191,7 +187,7 @@ results.Ss = Ss';
 %results.time_to_ss = time_to_ss; 
 
 %fname = strcat('base_run',num2str(params.A*1e25),'_c.mat');
-fname = 'coulomb_retreat.mat';
+fname = 'budd_retreat.mat';
 %fname = strcat('Nh_',num2str(params.Nh),'_coarse_',num2str(params.N1),'_fine_',num2str(params.Nx-params.N1),'.mat');
 save(fname,'results');
 

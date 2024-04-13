@@ -1,27 +1,27 @@
 clear all
 close all
 clc
-bed_func = @bed_schoof;
+%% For using same initial condition as coupled 
 
-%% Physical parameters
-load coulomb_retreat.mat
+load budd_retreat.mat
 params = results.params;
 bed_func = @bed_schoof;
-N_coupled = results.init_cond(params.Nh+1:2*params.Nh);
-N_interp = interp1(params.sigma_h,N_coupled,params.sigma,'linear','extrap');
+% case where N is the same as coupled, kept constant
+N = results.init_cond(params.Nh+1:2*params.Nh);
 h = results.init_cond(params.ice_start+1:params.ice_start+ params.Nx);
 u = results.init_cond(params.ice_start + params.Nx+1:params.ice_start+2*params.Nx);
 xg = results.init_cond(params.ice_start+2*params.Nx+1);
 
-h_interp = interp1(params.sigma_elem,h.*params.h0,params.sigma,'linear','extrap');
-b = -bed_func(xg.*params.sigma.*params.x0,params)/params.h0;
-N_simple = (params.g.*params.rho_i.*h_interp(1:end)) ./params.N0;% - max(params.rho_w.*params.g.*params.h0.*b(1:end),zeros(params.Nx,1)))./params.N0;
-params.N_scale = N_interp./N_simple;
+params.fixed_N_grid = params.sigma_h*xg; 
+params.N_scaled = N*params.N0;
 h_scaled = h*results.params.h0;
 u_scaled = u*results.params.u0;
 params.transient = 0;
 
-%% Test to make sure flowline equations work 
+%% Test to make sure flowline equations make sense
+%hf = (-bed(xg.*params.x0,params)/params.h0)/params.r;
+h = h_scaled/params.h0;%1 - (1-hf).*params.sigma;
+u = u_scaled/params.u0;%0.3*(params.sigma_elem.^(1/3)) + 1e-3;
 params.h_old = h;
 params.xg_old = xg;
 params.Cf = 0.4;
@@ -35,29 +35,36 @@ h_diff = res(1:params.Nx);
 u_diff = res(params.Nx+1:2*params.Nx);
 xg_diff = res(end);
 
-%% Establish timings
-params.year = 3600*24*365;  %number of seconds in a year
-params.Nt =5000;                    %number of time steps - normally 150
-params.end_year = 5000; %normally 7500
-
-params.dt = params.end_year*params.year/params.Nt;
-
-%% Initial "steady state" conditions
+%% Solve for steady-state initial conditions
 
 options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
 flf = @(huxg) flowline_eqns(huxg,params,bed_func);
 
 [huxg_init,F,exitflag,output,JAC] = fsolve(flf,huxg0,options);
 
-
 h = huxg_init(1:params.Nx);
 u = huxg_init(params.Nx+1:2*params.Nx);
-xg = huxg_init(2*params.Nx+1);
+xg = huxg_init(end);
 hf = (-bed_func(xg.*params.x0,params)/params.h0)/(params.r);
 
+%% Calculate steady state solution
+%params.accum = 1/params.year;
+%params.A = 4.9e-25; 
+%params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
+%flf = @(huxg) flowline_eqns(huxg,params);
+%[huxg_final,F,exitflag,output,JAC] = fsolve(flf,huxg_init,options);
+%xg_f = huxg_final(end);
+
+
+%% Establish timings
+params.year = 3600*24*365;  %number of seconds in a year
+params.Nt =3000;                    %number of time steps - normally 150
+params.end_year = 3000; %normally 7500
+
+params.dt = params.end_year*params.year/params.Nt;
 
 %% Calculate transient GL evolution over bedrock peak
-huxg_t = huxg_init;
+huxg_t = huxg0;
 xgs = nan.*ones(1,params.Nt);
 hs = nan.*ones(params.Nt,params.Nx);
 us = nan.*ones(params.Nt,params.Nx);
@@ -91,7 +98,6 @@ end
 
 
 %% Plot transient solution
-load coulomb_retreat.mat
 figure();
 ts = linspace(0,params.end_year,params.Nt);
 subplot(3,1,1);plot(ts,xgs.*params.x0./1e3,'linewidth',3);xlabel('time (yr)');ylabel('x_g');hold on;plot(results.ts,results.xgs.*params.x0./1e3,'linewidth',3)
@@ -109,18 +115,18 @@ hold on;
 plot(params.fixed_N_grid*params.x0/1000,params.N_scaled);ylabel('N (Pa)');xlabel('distance from divide (km)');
 
 %% Save results
-results_hybridN.params = params;
-results_hybridN.init_cond = huxg_init;
+results_constN.params = params;
+results_constN.init_cond = huxg_init;
 %results_constN.steady_state = huxg_final;
-results_hybridN.xgs = xgs;
-results_hybridN.ts = ts;
-results_hybridN.hs = hs';
-results_hybridN.us = us';
+results_constN.xgs = xgs;
+results_constN.ts = ts;
+results_constN.hs = hs';
+results_constN.us = us';
 %results_constN.xg_f = xg_f;
 
 %results_constN.time_to_ss = time_to_ss; 
-fname = 'hybrid_N_coulomb.mat';
-save(fname,'results_hybridN');
+fname = 'const_N_budd.mat';
+save(fname,'results_constN');
 
 %% Implicit system of equations function (using discretization scheme from Schoof 2007)
 function F = flowline_eqns(huxg,params,bed_func)
@@ -141,8 +147,7 @@ function F = flowline_eqns(huxg,params,bed_func)
     b = -bed_func(xg.*sigma.*params.x0,params)/params.h0;
     Fh = zeros(Nx,1);
     Fu = zeros(Nx,1);
-    Fn = zeros(Nx,1);
-
+    
     %physical params unpack
     m     = 1/params.n;
     nglen = params.n;
@@ -155,10 +160,7 @@ function F = flowline_eqns(huxg,params,bed_func)
     %previous time step unpack
     h_old = params.h_old;
     xg_old = params.xg_old;
-    
-    h_interp = interp1(sigma_elem,h.*params.h0,sigma,'linear','extrap');
-    N  = params.N_scale.*(params.g.*params.rho_i.*h_interp(1:end)) ./params.N0;%- max(params.rho_w.*params.g.*params.h0.*b(1:end),zeros(Nx,1)))./params.N0;
-    
+    N = interp1(params.fixed_N_grid,params.N_scaled./params.N0,sigma*xg);
 
     %thickness - stays same
     Fh(1)      = ss.*(h(1)-h_old(1))./dt + (2.*h(1).*u(1))./(ds(1).*xg) - a;
@@ -193,9 +195,8 @@ function F = flowline_eqns(huxg,params,bed_func)
     Fu(Nx)     = alpha.*(1./(xg.*ds(Nx-1)).^(1/nglen)).*...
                  (abs(u(Nx)-u(Nx-1)).^((1/nglen)-1)).*(u(Nx)-u(Nx-1)) - params.Cf.*0.5*(1-params.r)*hf;
              
-    Fxg        = 3*h(Nx) - h(Nx-1) - 2*hf;  
-
-   
+    Fxg        = 3*h(Nx) - h(Nx-1) - 2*hf;   
+    
     F = [Fh;Fu;Fxg];
 end
 
