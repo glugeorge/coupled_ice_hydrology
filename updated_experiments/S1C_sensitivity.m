@@ -82,7 +82,7 @@ for i=1:length(a_vals)
 end
 
 %% Save values
-save("S1C_sensitivity_highres.mat");
+%save("S1C_sensitivity_highres.mat");
 
 %% Plotting
 fig = figure(1);
