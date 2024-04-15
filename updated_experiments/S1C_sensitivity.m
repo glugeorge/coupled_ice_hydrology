@@ -2,7 +2,7 @@ clear; close all;
 
 %% Define parameter ranges
 A_vals = logspace(log10(3.9e-26),log10(4.2e-25),4);
-M_vals = logspace(-6,-4,4);
+M_vals = logspace(-5,-3,4);
 a_vals = linspace(0.1,0.5,4);
 
 % C values
@@ -14,7 +14,7 @@ xg_arr = zeros(length(a_vals),length(C_vals),length(A_vals),length(M_vals));
 
 
 %% Grid parameters - ice sheet
-params.x0 = 1000*10^3;
+params.x0 = 100*10^3;
 params.h0 = 1000;
 params.Q0 = 1;
 params.Nx = 700;                    %number of grid points - 200
@@ -33,8 +33,8 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 Q = ones(params.Nh,1);
 N = ones(params.Nh,1);
 S = ones(params.Nh,1); 
-h = ones(length(params.sigma_elem),1);
-xg = 500e3/params.x0; % Set high past sill for retreat
+h = 2.*ones(length(params.sigma_elem),1);
+xg = 100e3/params.x0; % Set high past sill for retreat
 u = 0.1*(params.sigma_elem.^(1/3))+0.01; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
 
 

@@ -15,7 +15,7 @@ params.K0 = 10^-24; % From Kingslake thesis
 params.L = 3.3e5; % Kingslake thesis
 params.year = 3600*24*365;
 %% Scaling params (coupled model equations solved in non-dim form)
-params.x0 = 1000*10^3;
+params.x0 = 100*10^3;
 params.h0 = 1000;
 params.Q0 = 1;
 
