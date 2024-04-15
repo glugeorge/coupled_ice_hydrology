@@ -13,7 +13,7 @@ params.K0 = 10^-24; % From Kingslake thesis
 params.L = 3.3e5; % Kingslake thesis
 params.year = 3600*24*365;
 %% Scaling params (coupled model equations solved in non-dim form)
-params.x0 = 100*10^3;
+params.x0 = 1000*10^3;
 params.h0 = 1000;
 params.Q0 = 1;
 
@@ -67,9 +67,9 @@ params.ice_N_from_hydro = 1;
 
 %% Initial "steady state" conditions
 params.shear_scale = 1;
-Q = 1*ones(params.Nh,1)./params.Q0;
+Q = ones(params.Nh,1);
 N = ones(params.Nh,1);
-S = 3/params.S0.*ones(params.Nh,1); 
+S = ones(params.Nh,1); 
 params.S_old = S;
 params.M = 1e-6/params.M0; % zero when using schoof bed
 params.N_terminus = 0;
@@ -78,7 +78,7 @@ xg = 1500e3/params.x0; % Set high past sill for retreat
 hf = (-bed_func(xg.*params.x0,params)/params.h0)/params.r;
 h = 1 - (1-hf).*params.sigma;
 u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
-params.Q_in = 0.01/params.Q0;
+params.Q_in = 0.001/params.Q0;
 
 params.h_old = h;
 params.xg_old = xg;
