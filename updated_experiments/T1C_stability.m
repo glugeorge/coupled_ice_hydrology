@@ -111,8 +111,10 @@ for i=1:length(timesteps)
 end
 
 %% Plot
-plot(timesteps,xgfs);
-xscale("log");
+semilogx(timesteps,xgfs);
+
+%% Save
+save("T1C_stability.mat");
 %%
 function [xg_f]= run_transient(timesteps,params,QNShuxg_init)
 bed_func = @bed_schoof;
