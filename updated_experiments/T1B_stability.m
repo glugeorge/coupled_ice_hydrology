@@ -77,7 +77,7 @@ xg = 1500e3/params.x0; % Set high past sill for retreat
 hf = (-bed_func(xg.*params.x0,params)/params.h0)/params.r;
 h = 1 - (1-hf).*params.sigma;
 u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
-params.Q_in = 0.01/params.Q0;
+params.Q_in = 0.001/params.Q0;
 
 params.h_old = h;
 params.xg_old = xg;
