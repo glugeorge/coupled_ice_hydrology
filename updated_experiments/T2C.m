@@ -98,6 +98,7 @@ end
 
 
 %% Plot transient solution
+load coulomb_retreat.mat
 figure();
 ts = linspace(0,params.end_year,params.Nt);
 subplot(3,1,1);plot(ts,xgs.*params.x0./1e3,'linewidth',3);xlabel('time (yr)');ylabel('x_g');hold on;plot(results.ts,results.xgs.*params.x0./1e3,'linewidth',3)

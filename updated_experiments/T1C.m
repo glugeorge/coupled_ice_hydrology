@@ -54,8 +54,8 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 
 %% Establish timings
 params.year = 3600*24*365;  %number of seconds in a year
-params.Nt =3000;                    %number of time steps - normally 150
-params.end_year = 3000; %normally 7500
+params.Nt =5000;                    %number of time steps - normally 150
+params.end_year = 5000; %normally 7500
 
 params.dt = params.end_year*params.year/params.Nt;
 

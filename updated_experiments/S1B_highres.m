@@ -5,14 +5,10 @@ A_vals = logspace(log10(3.9e-26),log10(4.2e-25),4);
 M_vals = logspace(-5,-3,4);
 a_vals = linspace(0.1,0.5,4);
 
-% C values
-C_vals = linspace(0.1,0.5,4);
-
 % Base vector
 A = median(A_vals);
 M = median(M_vals);
 accum = median(a_vals);
-C = median(C_vals);
 
 %% Bed parameters
 params.b0 = -100;           %bed topo at x=0
@@ -28,8 +24,7 @@ params.n = 3;
 params.rho_i = 917;
 params.rho_w = 1028;
 params.g = 9.81;
-params.C = C; % base 0.2
-params.As = 2.26e-21; % Calculated 
+params.C = 7.624; % base 0.2
 params.f = 0.07; % From Kingslake thesis
 params.K0 = 10^-24; % From Kingslake thesis  
 params.L = 3.3e5; % Kingslake thesis
@@ -47,13 +42,10 @@ params.S0 = (params.f*params.rho_w*params.g*params.Q0^2/params.psi0)^(3/8);
 params.th0 = params.rho_i*params.S0/params.m0;
 params.N0 = (params.K0*params.th0)^(-1/3);
 params.delta = params.N0/(params.x0*params.psi0);
-%params.u0 = (rho_i*g*params.h0^2/(C*params.N0*params.x0))^n;
-params.u0 = params.As*(params.C*params.N0)^params.n;
+params.u0 = (params.rho_i*params.g*params.h0^2/(params.x0*params.N0*params.C))^params.n;
 params.t0 = params.x0/params.u0;
 params.a0 = params.h0/params.t0;
 params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
-%gamma = As*(C*N0)^n;
-params.gamma = (params.C*params.N0*params.x0)/(params.rho_i*params.g*params.h0^2);
 params.beta = params.th0/params.t0;
 params.r = params.rho_i/params.rho_w;
 
@@ -72,10 +64,10 @@ params.hydro_psi_from_ice_h = 1;
 params.ice_N_from_hydro = 1;
 params.Cf = 1;
 %% Solve and interpolate old
-params.Nx = 3100;                    %number of grid points - 200
+params.Nx = 300;                    %number of grid points - 200
 params.N1 = 100;                    %number of grid points in coarse domain - 100
-params.Nh = 200;
-params.sigGZ = 0.25;                %extent of coarse grid (where GL is at sigma=1) - 0.97
+params.Nh = 500;
+params.sigGZ = 0.95;                %extent of coarse grid (where GL is at sigma=1) - 0.97
 sigma1=linspace(params.sigGZ/(params.N1+0.5), params.sigGZ, params.N1);
 sigma2=linspace(params.sigGZ, 1, params.Nx-params.N1+1);
 params.sigma = [sigma1, sigma2(2:end)]';    %grid points on velocity (includes GL, not ice divide)
@@ -95,10 +87,10 @@ params.S_old = S;
 params.M = M./params.M0; % zero when using schoof bed
 params.N_terminus = 0;
 params.accum = accum./params.year;
-xg = 200e3/params.x0;
+xg = 100e3/params.x0;
 %hf = (-bed_flat(xg.*params.x0,params)/params.h0)/params.r;
-h =  1.2*ones(length(params.sigma_elem),1);%1 - (1-hf).*params.sigma;
-u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
+h =  ones(length(params.sigma_elem),1);%1 - (1-hf).*params.sigma;
+u = 0.1*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
 params.Q_in = 0.001/params.Q0;
 
 params.h_old = h;
@@ -111,7 +103,7 @@ QNShuxg0 = [Q;N;S;h;u;xg];
 bed_func = @bed_flat;
 
 options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
-flf = @(QNShuxg) ice_hydro_equations_coulomb(QNShuxg,params,bed_func);
+flf = @(QNShuxg) ice_hydro_equations_budd(QNShuxg,params,bed_func);
 
 [QNShuxg_init,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
 
@@ -126,20 +118,20 @@ sigma_elem_old = params.sigma_elem;
 sigma_h_old = params.sigma_h;
 
 %% Load in old one
-load S1C_highres.mat;
-Q_old = real(Q);
-N_old = real(N);
-S_old = real(S);
-h_old = real(h);
-u_old = real(u);
-xg_old = real(xg);
+load Copy_of_S1B_highres.mat;
+Q_old = Q;
+N_old = N;
+S_old = S;
+h_old = h;
+u_old = u;
+xg_old = xg;
 sigma_old = params.sigma;
 sigma_elem_old = params.sigma_elem;
 sigma_h_old = params.sigma_h;
 %% new
 % Grid parameters - ice sheet
-params.Nx = 3000;                    %number of grid points - 200
-params.Nh = 3000;
+params.Nx = 4000;                    %number of grid points - 200
+params.Nh = 4000;
 fine_grid = linspace(0,1,2*params.Nx);
 params.sigma = fine_grid(2:2:end)';    %grid points on velocity (includes GL, not ice divide)
 params.sigma_elem = fine_grid(1:2:end)';
@@ -152,24 +144,24 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 
 %% Initial "steady state" conditions
 params.shear_scale = 1;
-Q = ones(params.Nh,1);
-N = ones(params.Nh,1);
-S = ones(params.Nh,1); 
-% Q = interp1(sigma_h_old,Q_old,params.sigma_h,"linear","extrap");
-% N = interp1(sigma_h_old,N_old,params.sigma_h,"linear","extrap");
-% S = interp1(sigma_h_old,S_old,params.sigma_h,"linear","extrap");
+% Q = ones(params.Nh,1);
+% N = ones(params.Nh,1);
+% S = ones(params.Nh,1); 
+Q = interp1(sigma_h_old,Q_old,params.sigma_h,"linear","extrap");
+N = interp1(sigma_h_old,N_old,params.sigma_h,"linear","extrap");
+S = interp1(sigma_h_old,S_old,params.sigma_h,"linear","extrap");
 
 params.S_old = S;
 params.M = M./params.M0; % zero when using schoof bed
 params.N_terminus = 0;
 params.accum = accum./params.year;
-xg = 100e3/params.x0;
-%xg = xg_old;
-hf = (-bed_flat(xg.*params.x0,params)/params.h0)/params.r;
-h =  1 - (1-hf).*params.sigma; %ones(length(params.sigma_elem),1);
-%h = interp1(sigma_elem_old,h_old,params.sigma_elem,"linear","extrap");
-u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
-%u = interp1(sigma_old,u_old,params.sigma,"linear","extrap");
+%xg = 64e3/params.x0;
+xg = xg_old;
+%hf = (-bed_flat(xg.*params.x0,params)/params.h0)/params.r;
+%h =  ones(length(params.sigma_elem),1);%1 - (1-hf).*params.sigma;
+h = interp1(sigma_elem_old,h_old,params.sigma_elem,"linear","extrap");
+%u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
+u = interp1(sigma_old,u_old,params.sigma,"linear","extrap");
 
 params.Q_in = 0.001/params.Q0;
 
@@ -179,6 +171,7 @@ params.ice_start = 3*params.Nh;
 
 sig_old = params.sigma;
 sige_old = params.sigma_elem;
+
 QNShuxg0 = [Q;N;S;h;u;xg];
 
 options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
@@ -212,7 +205,7 @@ ax5 = subplot(5,1,5);
 plot(params.sigma.*xg.*params.x0./1000,u);hold on;ylabel('u');xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
 linkaxes([ax1,ax2,ax3,ax4,ax5],'x')
 %% Save
-save("S1C_highres.mat");
+save("S1B_highres.mat");
 
 
 function F = combined_hydro_ice_eqns_highres(QNShuxg,params)
@@ -248,7 +241,6 @@ function F = combined_hydro_ice_eqns_highres(QNShuxg,params)
     nglen = params.n;
     accum = params.accum;
     a = accum/params.a0;
-    gamma = params.gamma;
     alpha = params.alpha;
     ss = params.transient;
        
@@ -301,26 +293,30 @@ function F = combined_hydro_ice_eqns_highres(QNShuxg,params)
     % S
     fs(1) = abs(Q(1)).^3./(S(1).^(8/3)) - ... 
                         S(1).*N(1).^3 + ...
-                        0; % one sided difference
+                        (ss.*params.sigma_h(1)*(xg-xg_old)/dth - params.beta.*u_ice_interp(1)).*0 - ...
+                        ss.*(S(1)-params.S_old(1))./dth; % one sided difference
     fs(2:Nh-1)= abs(Q(2:Nh-1)).^3./(S(2:Nh-1).^(8/3)) - ... 
                         S(2:Nh-1).*N(2:Nh-1).^3 + ...
-                        (0 - params.beta.*u_ice_interp(2:Nh-1)).*(S(3:Nh)-S(1:Nh-2))./(2*xg*params.dsigma_h(2:Nh-1)) - ...
-                       0; 
+                        (ss.*params.sigma_h(2:Nh-1).*(xg-xg_old)./dth - params.beta.*u_ice_interp(2:Nh-1)).*(S(3:Nh)-S(1:Nh-2))./(2*xg*params.dsigma_h(2:Nh-1)) - ...
+                        ss.*(S(2:Nh-1)- params.S_old(2:Nh-1))./dth; 
     fs(Nh)= abs(Q(Nh)).^3./(S(Nh).^(8/3)) - ... 
                         S(Nh).*N(Nh).^3 + ...
-                        (0 - params.beta.*u_ice_interp(Nh)).*(S(Nh)-S(Nh-1))./(xg*params.dsigma_h(Nh-1)) - ...
-                        0; % one sided difference
+                        (ss.*params.sigma_h(Nh).*(xg-xg_old)./dth - params.beta.*u_ice_interp(Nh)).*(S(Nh)-S(Nh-1))./(xg*params.dsigma_h(Nh-1)) - ...
+                        ss.*(S(Nh)-params.S_old(Nh))./dth; % one sided difference
 
     % ice sheet equations
-    Fh(1)      = 0 + (2.*h(1).*u(1))./(ds(1).*xg) - a;
-    Fh(2)      = 0 -...
-                   (h(2).*(u(2)+u(1)))./(2*xg.*ds(2)) -...
+    Fh(1)      = ss.*(h(1)-h_old(1))./dt + (2.*h(1).*u(1))./(ds(1).*xg) - a;
+    Fh(2)      = ss.*(h(2)-h_old(2))./dt -...
+                    ss.*sigma_elem(2).*(xg-xg_old).*(h(3)-h(1))./(2*dt.*ds(2).*xg) +...
+                        (h(2).*(u(2)+u(1)))./(2*xg.*ds(2)) -...
                             a;
-    Fh(3:Nx-1) = 0 -...
-                   (h(3:Nx-1).*(u(3:Nx-1)+u(2:Nx-2)) - h(2:Nx-2).*(u(2:Nx-2)+u(1:Nx-3)))./(2*xg.*ds(3:Nx-1)) -...
+    Fh(3:Nx-1) = ss.*(h(3:Nx-1)-h_old(3:Nx-1))./dt -...
+                    ss.*sigma_elem(3:Nx-1).*(xg-xg_old).*(h(4:Nx)-h(2:Nx-2))./(2*dt.*ds(3:Nx-1).*xg) +...
+                        (h(3:Nx-1).*(u(3:Nx-1)+u(2:Nx-2)) - h(2:Nx-2).*(u(2:Nx-2)+u(1:Nx-3)))./(2*xg.*ds(3:Nx-1)) -...
                             a;
                             
-    Fh(Nx)     = 0 -...
+    Fh(Nx)     = ss.*(h(Nx)-h_old(Nx))./dt -...
+                    ss.*sigma_elem(Nx).*(xg-xg_old).*(h(Nx)-h(Nx-1))./(dt.*ds(Nx-1).*xg) +...
                         (h(Nx).*(u(Nx)+u(Nx-1)) - h(Nx-1).*(u(Nx-1)+u(Nx-2)))./(2*xg.*ds(Nx-1)) -...
                             a;
 
@@ -328,12 +324,12 @@ function F = combined_hydro_ice_eqns_highres(QNShuxg,params)
     Fu(1)      = (alpha).*(1./(xg.*ds(1)).^((1/nglen)+1)).*...
                  (h(2).*(u(2)-u(1)).*abs(u(2)-u(1)).^((1/nglen)-1) -...
                   h(1).*(2*u(1)).*abs(2*u(1)).^((1/nglen)-1)) -...
-                  gamma.*params.shear_scale.*N_ice(1).* (u(1)./(u(1) + N_ice(1).^nglen)).^m -...
+                  N_ice(1).* (u(1)).^m -...
                   0.5.*(h(1)+h(2)).*(h(2)-b(2)-h(1)+b(1))./(xg.*ds(1));
     Fu(2:Nx-1) = (alpha).*(1./(xg.*ds(2:Nx-1)).^((1/nglen)+1)).*...
                  (h(3:Nx).*(u(3:Nx)-u(2:Nx-1)).*abs(u(3:Nx)-u(2:Nx-1)).^((1/nglen)-1) -...
                   h(2:Nx-1).*(u(2:Nx-1)-u(1:Nx-2)).*abs(u(2:Nx-1)-u(1:Nx-2)).^((1/nglen)-1)) -...
-                  gamma.*params.shear_scale.*N_ice(2:Nx-1).*(u(2:Nx-1)./(u(2:Nx-1) + N_ice(2:Nx-1).^nglen)).^m -...
+                  N_ice(2:Nx-1).*(u(2:Nx-1)).^m -...
                   0.5.*(h(2:Nx-1)+h(3:Nx)).*(h(3:Nx)-b(3:Nx)-h(2:Nx-1)+b(2:Nx-1))./(xg.*ds(2:Nx-1));
     Fu(Nx)     = alpha.*(1./(xg.*ds(Nx-1)).^(1/nglen)).*...
                  (abs(u(Nx)-u(Nx-1)).^((1/nglen)-1)).*(u(Nx)-u(Nx-1)) - 0.5*(1-params.r)*hf;

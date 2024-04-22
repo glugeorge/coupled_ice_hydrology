@@ -1,84 +1,69 @@
 clear; close all;
 
-load S1C_sensitivity.mat
-
+load S1B_sensitivity.mat
 i = 1;
-j = 3;
 k = 4;
-l = 1;
-%%
- params.Nx = 700;                    %number of grid points - 200
- params.N1 = 100;                    %number of grid points in coarse domain - 100
- params.Nh = 1000;
-params.sigGZ = 0.85;                %extent of coarse grid (where GL is at sigma=1) - 0.97
-params.Q0=0.1;
+l = 2;
+% Grid parameters - ice sheet
+params.Nx = 300;                    %number of grid points - 200
+params.N1 = 100;                    %number of grid points in coarse domain - 100
+params.Nh = 200;
+params.sigGZ = 0.95;                %extent of coarse grid (where GL is at sigma=1) - 0.97
 sigma1=linspace(params.sigGZ/(params.N1+0.5), params.sigGZ, params.N1);
 sigma2=linspace(params.sigGZ, 1, params.Nx-params.N1+1);
 params.sigma = [sigma1, sigma2(2:end)]';    %grid points on velocity (includes GL, not ice divide)
 params.dsigma = diff(params.sigma); %grid spacing
 params.sigma_elem = [0;(params.sigma(1:params.Nx-1) + params.sigma(2:params.Nx))./2 ]; %grid points on thickness (includes divide, not GL)
+
+% Grid parameters - hydro
 params.sigma_h = linspace(0,1,params.Nh)';
 params.dsigma_h = diff(params.sigma_h); %grid spacing
+
 Q = ones(params.Nh,1);
 N = ones(params.Nh,1);
 S = ones(params.Nh,1); 
+h = 0.3*ones(length(params.sigma_elem),1);
 xg = 50e3/params.x0; % Set high past sill for retreat
-params.rho_i = 917;
-params.rho_w = 1028;
-params.r = params.rho_i/params.rho_w;
-params.b0 = -100;           %bed topo at x=0
-params.bx = -1e-3;          %linear bed slope
-
-params.sill_min = 2000e3;   %sill min x position
-params.sill_max = 2100e3;   %sill max x position
-params.sill_slope = 1e-3;   %slope of sill
-hf = (-bed_flat(xg.*params.x0,params)/params.h0)/params.r;
-
-h = 0.8*ones(length(params.sigma_elem),1); %  2 - (1-hf).*params.sigma;
-u = 0.1*(params.sigma_elem.^(1/3))+0.01; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
+u = 0.01*(params.sigma_elem.^(1/3))+0.01; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
 
 
 init = [Q;N;S;h;u;xg];
-[N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a_vals(i),C_vals(j),A_vals(k),M_vals(l),params,init);
-N_pos_arr(i,j,k,l) = N_pos;
-max_h_arr(i,j,k,l) = max_h;
-xg_arr(i,j,k,l) = xg;
+[N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a_vals(i),A_vals(k),M_vals(l),params,init);
+N_pos_arr(i,k,l) = N_pos;
+max_h_arr(i,k,l) = max_h;
+xg_arr(i,k,l) = xg;
 
 %% Plotting
 fig = figure(1);
-t = tiledlayout(length(a_vals),length(C_vals),'TileSpacing','Compact');
+t = tiledlayout(length(a_vals),1,'TileSpacing','Compact');
 for i=1:length(a_vals)
-    for j=1:length(C_vals)
         nexttile;
-        heatmap(A_vals,M_vals,squeeze(N_pos_arr(i,j,:,:))','ColorbarVisible','off');
+        heatmap(A_vals,M_vals,squeeze(N_pos_arr(i,:,:))','ColorbarVisible','off');
         %set(gca, 'XScale', 'log');
         %set(gca, 'YScale', 'log');
         %clim([0.9,1]);
-        title(['a=',num2str(a_vals(i)),', C=',num2str(C_vals(j))])
-    end
+        title(['a=',num2str(a_vals(i))])
 
 end
 %cb = colorbar(); 
 %cb.Layout.Tile = 'east'; % Assign colorbar location
 %%
 fig = figure(2);
-t = tiledlayout(length(a_vals),length(C_vals),'TileSpacing','Compact');
+t = tiledlayout(length(a_vals),1,'TileSpacing','Compact');
 for i=1:length(a_vals)
-    for j=1:length(C_vals)
         nexttile;
-        heatmap(A_vals,M_vals,squeeze(xg_arr(i,j,:,:))','ColorbarVisible','off');
+        heatmap(A_vals,M_vals,squeeze(xg_arr(i,:,:))','ColorbarVisible','off');
         
         %clim([0.95,1]);
-        title(['a=',num2str(a_vals(i)),', C=',num2str(C_vals(j))])
-    end
+        title(['a=',num2str(a_vals(i))])
 
 end
 %% Save values
-save("S1C_sensitivity.mat");
+save("S1B_sensitivity.mat");
 
 
 %% Solve function
-function [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a,C,A,M,params_init,init)
+function [N_pos,max_h,xg,next_init,exitflag] = solve_steady_state(a,A,M,params_init,init)
 bed_func = @bed_flat;
 params = params_init;
 params.b0 = -100;           %bed topo at x=0
@@ -94,8 +79,7 @@ params.n = 3;
 params.rho_i = 917;
 params.rho_w = 1028;
 params.g = 9.81;
-params.C = C; 
-params.As = 2.26e-21;
+params.C = 7.624;
 params.f = 0.07; % From Kingslake thesis
 params.K0 = 10^-24; % From Kingslake thesis  
 params.L = 3.3e5; % Kingslake thesis
@@ -110,13 +94,10 @@ params.S0 = (params.f*params.rho_w*params.g*params.Q0^2/params.psi0)^(3/8);
 params.th0 = params.rho_i*params.S0/params.m0;
 params.N0 = (params.K0*params.th0)^(-1/3);
 params.delta = params.N0/(params.x0*params.psi0);
-%params.u0 = (rho_i*g*params.h0^2/(C*params.N0*params.x0))^n;
-params.u0 = params.As*(params.C*params.N0)^params.n;
+params.u0 = (params.rho_i*params.g*params.h0^2/(params.x0*params.N0*params.C))^params.n;
 params.t0 = params.x0/params.u0;
 params.a0 = params.h0/params.t0;
 params.alpha = 2*params.u0^(1/params.n)/(params.rho_i*params.g*params.h0*(params.x0*params.A)^(1/params.n));
-%gamma = As*(C*N0)^n;
-params.gamma = (params.C*params.N0*params.x0)/(params.rho_i*params.g*params.h0^2);
 params.beta = params.th0/params.t0;
 params.r = params.rho_i/params.rho_w;
 
@@ -162,7 +143,7 @@ sig_old = params.sigma;
 sige_old = params.sigma_elem;
 
 options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
-flf = @(QNShuxg) ice_hydro_equations_coulomb(QNShuxg,params,bed_func);
+flf = @(QNShuxg) ice_hydro_equations_budd(QNShuxg,params,bed_func);
 
 [QNShuxg_init,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
 

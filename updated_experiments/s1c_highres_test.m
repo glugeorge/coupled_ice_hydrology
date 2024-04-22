@@ -1,4 +1,7 @@
 clear; close all;
+test1 = 1; %vary between 0.5 and 1.5
+test2 = 1; % vary between 0.5 and 2.5
+test3 = 0.3; % vary between 0.3 and 0.6
 
 %% Define parameter ranges
 A_vals = logspace(log10(3.9e-26),log10(4.2e-25),4);
@@ -71,72 +74,7 @@ params.hydro_u_from_ice_u = 1;
 params.hydro_psi_from_ice_h = 1;
 params.ice_N_from_hydro = 1;
 params.Cf = 1;
-%% Solve and interpolate old
-params.Nx = 3100;                    %number of grid points - 200
-params.N1 = 100;                    %number of grid points in coarse domain - 100
-params.Nh = 200;
-params.sigGZ = 0.25;                %extent of coarse grid (where GL is at sigma=1) - 0.97
-sigma1=linspace(params.sigGZ/(params.N1+0.5), params.sigGZ, params.N1);
-sigma2=linspace(params.sigGZ, 1, params.Nx-params.N1+1);
-params.sigma = [sigma1, sigma2(2:end)]';    %grid points on velocity (includes GL, not ice divide)
-params.dsigma = diff(params.sigma); %grid spacing
-params.sigma_elem = [0;(params.sigma(1:params.Nx-1) + params.sigma(2:params.Nx))./2 ]; %grid points on thickness (includes divide, not GL)
 
-% Grid parameters - hydro
-params.sigma_h = linspace(0,1,params.Nh)';
-params.dsigma_h = diff(params.sigma_h); %grid spacing
-
-% Initial "steady state" conditions
-params.shear_scale = 1;
-Q = ones(params.Nh,1);
-N = ones(params.Nh,1);
-S = ones(params.Nh,1); 
-params.S_old = S;
-params.M = M./params.M0; % zero when using schoof bed
-params.N_terminus = 0;
-params.accum = accum./params.year;
-xg = 200e3/params.x0;
-%hf = (-bed_flat(xg.*params.x0,params)/params.h0)/params.r;
-h =  1.2*ones(length(params.sigma_elem),1);%1 - (1-hf).*params.sigma;
-u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
-params.Q_in = 0.001/params.Q0;
-
-params.h_old = h;
-params.xg_old = xg;
-params.ice_start = 3*params.Nh;
-
-sig_old = params.sigma;
-sige_old = params.sigma_elem;
-QNShuxg0 = [Q;N;S;h;u;xg];
-bed_func = @bed_flat;
-
-options = optimoptions('fsolve','Display','iter','SpecifyObjectiveGradient',false,'MaxFunctionEvaluations',1e6,'MaxIterations',1e3);
-flf = @(QNShuxg) ice_hydro_equations_coulomb(QNShuxg,params,bed_func);
-
-[QNShuxg_init,F,exitflag,output,JAC] = fsolve(flf,QNShuxg0,options);
-
-Q_old = QNShuxg_init(1:params.Nh);
-N_old = QNShuxg_init(params.Nh+1:2*params.Nh);
-S_old = QNShuxg_init(2*params.Nh+1:3*params.Nh);
-h_old = QNShuxg_init(params.ice_start+1:params.ice_start+ params.Nx);
-u_old = QNShuxg_init(params.ice_start + params.Nx+1:params.ice_start+2*params.Nx);
-xg_old = QNShuxg_init(params.ice_start+2*params.Nx+1);
-sigma_old = params.sigma;
-sigma_elem_old = params.sigma_elem;
-sigma_h_old = params.sigma_h;
-
-%% Load in old one
-load S1C_highres.mat;
-Q_old = real(Q);
-N_old = real(N);
-S_old = real(S);
-h_old = real(h);
-u_old = real(u);
-xg_old = real(xg);
-sigma_old = params.sigma;
-sigma_elem_old = params.sigma_elem;
-sigma_h_old = params.sigma_h;
-%% new
 % Grid parameters - ice sheet
 params.Nx = 3000;                    %number of grid points - 200
 params.Nh = 3000;
@@ -153,22 +91,22 @@ params.dsigma_h = diff(params.sigma_h); %grid spacing
 %% Initial "steady state" conditions
 params.shear_scale = 1;
 Q = ones(params.Nh,1);
-N = ones(params.Nh,1);
+N = test1*ones(params.Nh,1);
 S = ones(params.Nh,1); 
-% Q = interp1(sigma_h_old,Q_old,params.sigma_h,"linear","extrap");
-% N = interp1(sigma_h_old,N_old,params.sigma_h,"linear","extrap");
-% S = interp1(sigma_h_old,S_old,params.sigma_h,"linear","extrap");
+%Q = interp1(sigma_h_old,Q_old,params.sigma_h,"linear","extrap");
+%N = interp1(sigma_h_old,N_old,params.sigma_h,"linear","extrap");
+%S = interp1(sigma_h_old,S_old,params.sigma_h,"linear","extrap");
 
 params.S_old = S;
 params.M = M./params.M0; % zero when using schoof bed
 params.N_terminus = 0;
 params.accum = accum./params.year;
-xg = 100e3/params.x0;
+xg = 200e3/params.x0;
 %xg = xg_old;
-hf = (-bed_flat(xg.*params.x0,params)/params.h0)/params.r;
-h =  1 - (1-hf).*params.sigma; %ones(length(params.sigma_elem),1);
+%hf = (-bed_flat(xg.*params.x0,params)/params.h0)/params.r;
+h =  test2*ones(length(params.sigma_elem),1);%1 - (1-hf).*params.sigma;
 %h = interp1(sigma_elem_old,h_old,params.sigma_elem,"linear","extrap");
-u = 0.3*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
+u = test3*(params.sigma_elem.^(1/3)) + 1e-3; % 0.1 for C = 0.5, 0.3 for C = 0.1-0.4
 %u = interp1(sigma_old,u_old,params.sigma,"linear","extrap");
 
 params.Q_in = 0.001/params.Q0;
@@ -193,6 +131,8 @@ h = QNShuxg_init(params.ice_start+1:params.ice_start+ params.Nx);
 u = QNShuxg_init(params.ice_start + params.Nx+1:params.ice_start+2*params.Nx);
 xg = QNShuxg_init(params.ice_start+2*params.Nx+1);
 hf = (-bed_flat(xg.*params.x0,params)/params.h0)/(params.r);
+%% Save
+save("S1C_highres.mat");
 
 %% Plot terms
 %plot_terms(QNShuxg_init,params);
@@ -211,8 +151,7 @@ plot(params.sigma_elem.*xg.*params.x0./1000,h-b_h);ylabel('h');hold on;plot(para
 ax5 = subplot(5,1,5);
 plot(params.sigma.*xg.*params.x0./1000,u);hold on;ylabel('u');xlabel('distance from divide, \emph{x} (km)','Interpreter','latex')
 linkaxes([ax1,ax2,ax3,ax4,ax5],'x')
-%% Save
-save("S1C_highres.mat");
+
 
 
 function F = combined_hydro_ice_eqns_highres(QNShuxg,params)
